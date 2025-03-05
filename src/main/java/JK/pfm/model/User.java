@@ -1,5 +1,6 @@
-package JK.demo.model;
+package JK.pfm.model;
 import jakarta.persistence.*;
+import javax.validation.constraints.NotNull;
 
 
 @Entity
@@ -11,9 +12,11 @@ public class User {
     private Long id;
     
     @Column(unique = true, nullable = false)
+    @NotNull
     private String username;
     
     @Column(nullable = false)
+    @NotNull
     private String password;
     
     // Getters and setters

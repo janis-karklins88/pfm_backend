@@ -1,4 +1,4 @@
-package JK.demo.util;
+package JK.pfm.util;
 
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;

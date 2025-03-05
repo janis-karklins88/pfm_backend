@@ -1,13 +1,13 @@
-package JK.demo.controller;
+package jk.pfm.controller;
 
 import java.util.Optional;
-import JK.demo.model.User;
-import JK.demo.util.JWTUtil;
+import JK.pfm.model.User;
+import JK.pfm.util.JWTUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import JK.demo.service.UserService;
+import JK.pfm.service.UserService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
 @RestController
@@ -35,10 +35,14 @@ public class UserController {
     @PostMapping("/login")
     public ResponseEntity<String> loginUser(@RequestBody User user) {
         Optional<User> existingUser = userService.getUserByUsername(user.getUsername());
+        //check if user exists
         if (existingUser.isPresent()) {
+            //compare passwords
             if (passwordEncoder.matches(user.getPassword(), existingUser.get().getPassword())) {
+                //generating token
                 String token = JWTUtil.generateToken(user.getUsername());
-            return ResponseEntity.ok("Bearer" + token);
+                
+                return ResponseEntity.ok("Bearer " + token);
         }
             
         } 
@@ -46,11 +50,4 @@ public class UserController {
         
     }
     
-    // Get user details (secured endpoint)
-    @GetMapping("/{username}")
-    public ResponseEntity<User> getUser(@PathVariable String username) {
-        Optional<User> user = userService.getUserByUsername(username);
-        return user.map(ResponseEntity::ok)
-                   .orElseGet(() -> ResponseEntity.notFound().build());
-    }
 }

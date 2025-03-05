@@ -1,8 +1,8 @@
 
-package JK.demo.repository;
+package JK.pfm.repository;
 
 import java.util.Optional;
-import JK.demo.model.User;
+import JK.pfm.model.User;
 import org.springframework.data.jpa.repository.JpaRepository;
         
 
