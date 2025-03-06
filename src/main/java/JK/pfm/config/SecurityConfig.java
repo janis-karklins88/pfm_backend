@@ -29,6 +29,8 @@ public class SecurityConfig {
     public PasswordEncoder passwordEncoder() {
     return new BCryptPasswordEncoder();
 }
+    
+    //CORS 
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
@@ -46,7 +48,7 @@ public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-        // Disable CSRF and permit all requests
+        
         http
             .csrf(csrf -> csrf.disable())
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))

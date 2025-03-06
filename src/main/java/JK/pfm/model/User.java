@@ -7,6 +7,7 @@ import javax.validation.constraints.NotNull;
 @Table(name = "users")
 public class User {
     
+    //Varaibles
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -18,6 +19,12 @@ public class User {
     @Column(nullable = false)
     @NotNull
     private String password;
+    
+    //Constructor
+    public User(String username, String password){
+        this.username = username;
+        this.password = password;
+    }
     
     // Getters and setters
     public Long getId() {

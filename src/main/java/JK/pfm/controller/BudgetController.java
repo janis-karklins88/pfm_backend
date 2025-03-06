@@ -1,0 +1,38 @@
+package JK.pfm.controller;
+
+import JK.pfm.model.Budget;
+import JK.pfm.service.BudgetService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+
+@RestController
+@RequestMapping("/api/budgets")
+public class BudgetController {
+
+    @Autowired
+    private BudgetService budgetService;
+    
+    //get Budget
+    @GetMapping
+    public ResponseEntity<List<Budget>> getAllBudgets() {
+        List<Budget> budgets = budgetService.getAllBudgets();
+        return ResponseEntity.ok(budgets);
+    }
+
+    //create budget
+    @PostMapping
+    public ResponseEntity<Budget> createBudget(@RequestBody Budget budget) {
+        Budget savedBudget = budgetService.saveBudget(budget);
+        return ResponseEntity.ok(savedBudget);
+    }
+
+    //delete budget
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteBudget(@PathVariable Long id) {
+        budgetService.deleteBudget(id);
+        return ResponseEntity.noContent().build();
+    }
+}

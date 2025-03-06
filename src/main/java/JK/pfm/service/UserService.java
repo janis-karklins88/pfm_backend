@@ -4,7 +4,6 @@ import java.util.Optional;
 import JK.pfm.model.User;
 import JK.pfm.util.Validations;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import JK.pfm.repository.UserRepository;
 import org.springframework.security.crypto.password.PasswordEncoder;
