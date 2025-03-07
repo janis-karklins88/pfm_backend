@@ -4,6 +4,7 @@ package JK.pfm.model;
 import jakarta.persistence.*;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import javax.validation.constraints.NotNull;
 
 @Entity
 @Table(name = "transactions")
@@ -26,16 +27,20 @@ public class Transaction {
     @ManyToOne
     @JoinColumn(name = "account_id")
     private Account account;
+    
+    @NotNull(message = "Transaction type is required!")
+    private String type;
 
     // Constructors
     public Transaction() {
     }
 
-    public Transaction(LocalDateTime date, BigDecimal amount, Account account, Category category) {
+    public Transaction(LocalDateTime date, BigDecimal amount, Account account, Category category, String type) {
         this.date = date;
         this.amount = amount;
         this.account = account;
         this.category = category;
+        this.type = type;
     }
 
     // Getters and setters
@@ -73,5 +78,13 @@ public class Transaction {
 
     public void setCategory(Category category) {
         this.category = category;
+    }
+    
+    public String getType(){
+        return type;
+    }
+    
+    public void setType(String type){
+        this.type = type;
     }
 }

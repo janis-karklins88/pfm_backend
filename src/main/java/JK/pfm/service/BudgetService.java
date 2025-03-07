@@ -2,6 +2,8 @@ package JK.pfm.service;
 
 import JK.pfm.model.Budget;
 import JK.pfm.repository.BudgetRepository;
+import JK.pfm.util.Validations;
+import java.math.BigDecimal;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -32,5 +34,20 @@ public class BudgetService {
     //getting budget by id
     public Optional<Budget> getBudgetById(Long id) {
         return budgetRepository.findById(id);
+    }
+    
+    //update amount
+    public Budget updateBudgetAmount(Long id, BigDecimal amount){
+        Validations.numberCheck(amount, "Amount");
+        Validations.negativeCheck(amount, "Amount");
+        
+        Optional<Budget> budgetOpt = budgetRepository.findById(id);
+        if (budgetOpt.isEmpty()) {
+            throw new RuntimeException("Budget not found!");
+        }
+        Budget budget = budgetOpt.get();
+        budget.setAmount(amount);
+        
+        return budgetRepository.save(budget);
     }
 }

@@ -8,7 +8,7 @@ public class Validations {
  
     //empty field validation
     public static void emptyFieldValidation(String field, String fieldName){
-        if(field==null || field.isEmpty()){
+        if(field==null || field.trim().isEmpty()){
             throw new RuntimeException(fieldName +" cannot be empty!");
         } 
     }
@@ -20,6 +20,12 @@ public class Validations {
         }
     }
     
+    //empty number check
+    public static void numberCheck(BigDecimal number, String fieldName ){
+        if(number == null) {
+            throw new RuntimeException(fieldName + " cannot be empty!");
+        }
+    }
    
 
     

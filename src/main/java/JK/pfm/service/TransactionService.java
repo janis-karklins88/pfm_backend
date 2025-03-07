@@ -1,7 +1,10 @@
 package JK.pfm.service;
 
+import JK.pfm.model.Account;
 import JK.pfm.model.Transaction;
 import JK.pfm.repository.TransactionRepository;
+import JK.pfm.util.Validations;
+import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import java.util.List;
@@ -14,9 +17,33 @@ public class TransactionService {
     private TransactionRepository transactionRepository;
     
     // Save a new transaction
+    @Transactional
     public Transaction saveTransaction(Transaction transaction) {
-        return transactionRepository.save(transaction);
+    Account account = transaction.getAccount();
+    
+    // amount validation
+    Validations.numberCheck(transaction.getAmount(), "Amount");
+    Validations.negativeCheck(transaction.getAmount(), "Amount");
+    
+    //transaction type validation
+    if(!transaction.getType().equals("Deposit") && !transaction.getType().equals("Expense")){
+            throw new RuntimeException("Incorrect transaction type!");
+        }
+    
+    // Update the account balance based on the transaction type
+    if (transaction.getType().equals("Expense")) {
+        // check for sufficient funds
+        if (account.getAmount().compareTo(transaction.getAmount()) < 0) {
+            throw new RuntimeException("Insufficient funds");
+        }
+        account.setAmount(account.getAmount().subtract(transaction.getAmount()));
+    } else if (transaction.getType().equals("Deposit")) {
+        account.setAmount(account.getAmount().add(transaction.getAmount()));
     }
+    
+    // Save the transaction
+    return transactionRepository.save(transaction);
+}
     
     // Get all transactions
     public List<Transaction> getAllTransactions() {
