@@ -48,4 +48,11 @@ public class BudgetController {
         Budget updatedBudget = budgetService.updateBudgetAmount(id, newAmount);
         return ResponseEntity.ok(updatedBudget);
     }
+    
+    //get amount spent on budget
+    @GetMapping("/spent/{id}")
+    public ResponseEntity<BigDecimal> getTotalSpentOnBudget(@PathVariable Long id){
+        BigDecimal totalSpent = budgetService.getTotalSpentOnBudget(id);
+        return ResponseEntity.ok(totalSpent);
+    }
 }

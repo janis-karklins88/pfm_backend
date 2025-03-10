@@ -1,6 +1,7 @@
 package JK.pfm.service;
 
 import JK.pfm.model.Budget;
+import JK.pfm.model.Category;
 import JK.pfm.repository.BudgetRepository;
 import JK.pfm.util.Validations;
 import java.math.BigDecimal;
@@ -15,7 +16,7 @@ public class BudgetService {
 
     @Autowired
     private BudgetRepository budgetRepository;
-
+    
     //getting all budgets
     public List<Budget> getAllBudgets() {
         return budgetRepository.findAll();
@@ -32,7 +33,7 @@ public class BudgetService {
     }
 
     //getting budget by id
-    public Optional<Budget> getBudgetById(Long id) {
+    public Optional<Budget> getBudgetById(Long id) {                                                         
         return budgetRepository.findById(id);
     }
     
@@ -50,4 +51,16 @@ public class BudgetService {
         
         return budgetRepository.save(budget);
     }
+    
+    //get total spent on budget
+    public BigDecimal getTotalSpentOnBudget(Long id){
+        Optional<Budget> budgetOpt = budgetRepository.findById(id);
+        if (budgetOpt.isEmpty()) {
+            throw new RuntimeException("Budget not found!");
+        }
+        Budget budget = budgetOpt.get();   
+        Category category = budget.getCategory();
+        return budgetRepository.getTotalSpentOnBudget(category.getId(), budget.getStartDate(), budget.getEndDate());
+    } 
+    
 }

@@ -1,8 +1,11 @@
 package JK.pfm.repository;
 
 import JK.pfm.model.RecurringExpense;
+import java.time.LocalDate;
+import java.util.List;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface RecurringExpenseRepository extends JpaRepository<RecurringExpense, Long> {
-    // You can add methods like findByCategoryId, findByStartDateBetween, etc.
+    List<RecurringExpense> findByNextDueDateLessThanEqual(LocalDate date);
+
 }

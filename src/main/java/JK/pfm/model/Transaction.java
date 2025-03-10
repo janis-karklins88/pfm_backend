@@ -30,17 +30,20 @@ public class Transaction {
     
     @NotNull(message = "Transaction type is required!")
     private String type;
+    
+    private String description;
 
     // Constructors
     public Transaction() {
     }
 
-    public Transaction(LocalDateTime date, BigDecimal amount, Account account, Category category, String type) {
+    public Transaction(LocalDateTime date, BigDecimal amount, Account account, Category category, String type, String description) {
         this.date = date;
         this.amount = amount;
         this.account = account;
         this.category = category;
         this.type = type;
+        this.description = description;
     }
 
     // Getters and setters
@@ -86,5 +89,13 @@ public class Transaction {
     
     public void setType(String type){
         this.type = type;
+    }
+    
+    public String getDescription(){
+        return description;
+    }
+    
+    public void setDescription(String description){
+        this.description = description;
     }
 }

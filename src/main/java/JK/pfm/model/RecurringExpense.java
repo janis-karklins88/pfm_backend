@@ -19,9 +19,7 @@ public class RecurringExpense {
     
     private LocalDate startDate;
     
-    
-    @Enumerated(EnumType.STRING)
-    private Frequency frequency;
+    private String frequency;
     
     private LocalDate nextDueDate;
     
@@ -36,7 +34,7 @@ public class RecurringExpense {
     // Constructors
     public RecurringExpense() {}
 
-    public RecurringExpense(String name, BigDecimal amount, LocalDate startDate, Frequency frequency, LocalDate nextDueDate, Account account) {
+    public RecurringExpense(String name, BigDecimal amount, LocalDate startDate, String frequency, LocalDate nextDueDate, Account account) {
         this.name = name;
         this.amount = amount;
         this.startDate = startDate;
@@ -74,11 +72,11 @@ public class RecurringExpense {
         this.startDate = startDate;
     }
   
-    public Frequency getFrequency() {
+    public String getFrequency() {
         return frequency;
     }
   
-    public void setFrequency(Frequency frequency) {
+    public void setFrequency(String frequency) {
         this.frequency = frequency;
     }
   
@@ -106,10 +104,4 @@ public class RecurringExpense {
         this.category = category;
     }
     
-    //Enum for frequency
-    public enum Frequency {
-        WEEKLY,
-        MONTHLY,
-        ANNUALLY
     }
-}

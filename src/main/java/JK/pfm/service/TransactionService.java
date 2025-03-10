@@ -56,7 +56,26 @@ public class TransactionService {
     }
     
     // Delete a transaction by id
+    @Transactional
     public void deleteTransaction(Long id) {
+        //retreiving transaction and account
+        Optional<Transaction> transactionOpt = transactionRepository.findById(id);
+        if (transactionOpt.isEmpty()) {
+            throw new RuntimeException("Transaction not found!");
+        }
+        Transaction transaction = transactionOpt.get();
+        Account account = transaction.getAccount();
+        //updating account balance before delete
+        if (transaction.getType().equals("Expense")){
+            account.setAmount(account.getAmount().add(transaction.getAmount()));
+        }
+        else {
+            //check for funds
+            if (account.getAmount().compareTo(transaction.getAmount()) < 0) {
+            throw new RuntimeException("Insufficient funds");
+        }
+            account.setAmount(account.getAmount().subtract(transaction.getAmount()));
+        }
         transactionRepository.deleteById(id);
     }
     
