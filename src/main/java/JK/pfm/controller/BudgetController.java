@@ -42,6 +42,7 @@ public class BudgetController {
     @PatchMapping("/{id}/amount")
     public ResponseEntity<Budget> updateBudgetAmount(@PathVariable Long id, @RequestBody Map<String, BigDecimal> request) {
         BigDecimal newAmount = request.get("amount");
+        //update this later to more informative
         if (newAmount == null) {
             return ResponseEntity.badRequest().build();
         }

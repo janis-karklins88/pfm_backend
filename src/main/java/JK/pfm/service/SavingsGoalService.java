@@ -2,6 +2,8 @@ package JK.pfm.service;
 
 import JK.pfm.model.SavingsGoal;
 import JK.pfm.repository.SavingsGoalRepository;
+import jakarta.transaction.Transactional;
+import java.math.BigDecimal;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -33,5 +35,40 @@ public class SavingsGoalService {
     //deleting saving goal
     public void deleteSavingsGoal(Long id) {
         savingsGoalRepository.deleteById(id);
+    }
+    
+    //update goal amount
+    public SavingsGoal updateSavingsGoalAmount(Long id, BigDecimal amount) {
+        Optional <SavingsGoal> savingsGoalOpt = savingsGoalRepository.findById(id);
+        if (savingsGoalOpt.isEmpty()) {
+            throw new RuntimeException("Savings goal not found!");
+        }
+        SavingsGoal savingsGoalUpdate = savingsGoalOpt.get();
+        savingsGoalUpdate.setTargetAmount(amount);
+        return savingsGoalRepository.save(savingsGoalUpdate);
+    }
+    
+    //transfer funds
+    @Transactional
+    public SavingsGoal transferFunds(Long id, BigDecimal amount, String type){
+        Optional <SavingsGoal> savingsGoalOpt = savingsGoalRepository.findById(id);
+        if (savingsGoalOpt.isEmpty()) {
+            throw new RuntimeException("Savings goal not found!");
+        }
+        SavingsGoal savingsGoal = savingsGoalOpt.get();
+        //withdrawing
+        if(type.equalsIgnoreCase("Withdraw")){
+            //check for sufficient funds
+            if (savingsGoal.getCurrentAmount().compareTo(amount) >= 0) {
+            savingsGoal.setCurrentAmount(savingsGoal.getCurrentAmount().subtract(amount));
+        } else {
+                throw new RuntimeException("Insufficient funds");
+            }
+        }
+        //depositing
+        else {
+            savingsGoal.setCurrentAmount(savingsGoal.getCurrentAmount().add(amount));
+        }
+        return savingsGoalRepository.save(savingsGoal);
     }
 }
