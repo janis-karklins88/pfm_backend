@@ -4,9 +4,11 @@ package JK.pfm.repository;
 
 
 import JK.pfm.model.Category;
+import java.util.List;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface CategoryRepository extends JpaRepository<Category, Long> {
-    // You can add custom query methods here if needed.
+    List<Category> findAllByActiveTrue();
+
 }
 

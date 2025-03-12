@@ -2,6 +2,7 @@
 package JK.pfm.controller;
 
 import JK.pfm.dto.BudgetVsActualDTO;
+import JK.pfm.dto.CashFlowDTO;
 import JK.pfm.dto.DailyTrend;
 import JK.pfm.service.ReportService;
 import java.math.BigDecimal;
@@ -40,6 +41,15 @@ public class ReportController {
         return ResponseEntity.ok(summary);
     }
     
+    //getting net savings
+    @GetMapping("/netsavings")
+     public ResponseEntity<BigDecimal> calculateNetSavings(
+            @RequestParam("start") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate start,
+            @RequestParam("end") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate end) {
+        BigDecimal netSavings = reportService.calculateNetSavings(start, end);
+        return ResponseEntity.ok(netSavings);
+    }
+    
     //getting expenses breakdown by category
     @GetMapping("/spending-by-category")
     public ResponseEntity<Map<String, BigDecimal>> getSpendingByCategory(
@@ -58,6 +68,15 @@ public class ReportController {
         
         List<DailyTrend> trends = reportService.getDailyTrends(start, end);
         return ResponseEntity.ok(trends);
+    }
+    
+    //getting net cashflow
+    public ResponseEntity<List<CashFlowDTO>> getDailyCashFlow(
+            @RequestParam("start") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate start,
+            @RequestParam("end") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate end) {
+        
+        List<CashFlowDTO> cashFlowList = reportService.getDailyCashFlow(start, end);
+        return ResponseEntity.ok(cashFlowList);
     }
     
     //budget vs actual spenddings

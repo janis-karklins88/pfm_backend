@@ -1,7 +1,9 @@
 package JK.pfm.controller;
 
+import JK.pfm.model.Account;
 import JK.pfm.model.Budget;
 import JK.pfm.model.SavingsGoal;
+import JK.pfm.service.AccountService;
 import JK.pfm.service.SavingsGoalService;
 import JK.pfm.util.Validations;
 import java.math.BigDecimal;
@@ -18,6 +20,9 @@ public class SavingsGoalController {
 
     @Autowired
     private SavingsGoalService savingsGoalService;
+    
+    @Autowired
+    private AccountService accountService;
 
     //Get all saving goals
     @GetMapping
@@ -58,12 +63,12 @@ public class SavingsGoalController {
     }
     
     //add/remove saved ammount
-    @PatchMapping("/{id}/transfer-funds")
+     @PatchMapping("/{id}/transfer-funds")
     public ResponseEntity<SavingsGoal> transferFundsSavingsGoal(
             @PathVariable Long id, 
             @RequestBody Map<String, Object> request) {
         
-        // Extract the amount from the request. Assuming the JSON contains a key "amount".
+        // Extract the amount from the request
         BigDecimal amount;
         try {
             amount = new BigDecimal(request.get("amount").toString());
@@ -71,14 +76,25 @@ public class SavingsGoalController {
             return ResponseEntity.badRequest().build();
         }
 
-        // Extract the operation type from the request. Expecting a key "type" with value "Deposit" or "Withdraw"
+        // Extract the operation type from the request
         String type = request.get("type").toString();
         if (!"Deposit".equalsIgnoreCase(type) && !"Withdraw".equalsIgnoreCase(type)) {
             return ResponseEntity.badRequest().build();
         }
 
-        // Call the service layer to perform the transfer operation
-        SavingsGoal updatedGoal = savingsGoalService.transferFunds(id, amount, type);
+        // Extract accountId from the request. Expecting a key "accountId"
+        Long accountId;
+        try {
+            accountId = Long.valueOf(request.get("accountId").toString());
+        } catch (NumberFormatException e) {
+            return ResponseEntity.badRequest().build();
+        }
+
+        // Load the account entity
+        Account account = accountService.getAccountById(accountId);
+
+        // Call the service layer to perform the transfer operation, now with the account parameter
+        SavingsGoal updatedGoal = savingsGoalService.transferFunds(id, amount, type, account);
         return ResponseEntity.ok(updatedGoal);
     }
 }

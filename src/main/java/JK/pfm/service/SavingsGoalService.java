@@ -1,5 +1,6 @@
 package JK.pfm.service;
 
+import JK.pfm.model.Account;
 import JK.pfm.model.SavingsGoal;
 import JK.pfm.repository.SavingsGoalRepository;
 import jakarta.transaction.Transactional;
@@ -33,9 +34,21 @@ public class SavingsGoalService {
     
 
     //deleting saving goal
+    @Transactional
     public void deleteSavingsGoal(Long id) {
-        savingsGoalRepository.deleteById(id);
-    }
+        Optional<SavingsGoal> savingsGoalOpt = savingsGoalRepository.findById(id);
+        if (savingsGoalOpt.isEmpty()) {
+           throw new RuntimeException("Savings goal not found!");
+        }
+        SavingsGoal savingsGoal = savingsGoalOpt.get();
+    
+        // Check if there is any balance remaining
+        if (savingsGoal.getCurrentAmount().compareTo(BigDecimal.ZERO) != 0) {
+            throw new RuntimeException("Savings goal still has funds. Please withdraw funds before deletion.");
+        }
+    
+    savingsGoalRepository.deleteById(id);
+}
     
     //update goal amount
     public SavingsGoal updateSavingsGoalAmount(Long id, BigDecimal amount) {
@@ -50,7 +63,7 @@ public class SavingsGoalService {
     
     //transfer funds
     @Transactional
-    public SavingsGoal transferFunds(Long id, BigDecimal amount, String type){
+    public SavingsGoal transferFunds(Long id, BigDecimal amount, String type, Account account){
         Optional <SavingsGoal> savingsGoalOpt = savingsGoalRepository.findById(id);
         if (savingsGoalOpt.isEmpty()) {
             throw new RuntimeException("Savings goal not found!");
@@ -61,13 +74,19 @@ public class SavingsGoalService {
             //check for sufficient funds
             if (savingsGoal.getCurrentAmount().compareTo(amount) >= 0) {
             savingsGoal.setCurrentAmount(savingsGoal.getCurrentAmount().subtract(amount));
+            account.setAmount(account.getAmount().add(amount));
         } else {
                 throw new RuntimeException("Insufficient funds");
             }
         }
         //depositing
         else {
+            if (account.getAmount().compareTo(amount) >= 0) {
             savingsGoal.setCurrentAmount(savingsGoal.getCurrentAmount().add(amount));
+            account.setAmount(account.getAmount().subtract(amount));
+            } else {
+            throw new RuntimeException("Insufficient funds in account");
+            }
         }
         return savingsGoalRepository.save(savingsGoal);
     }

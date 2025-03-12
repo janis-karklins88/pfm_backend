@@ -37,8 +37,13 @@ public class AccountService {
     }
 
     //getting one account 
-    public Optional<Account> getAccountById(Long id) {
-        return accountRepository.findById(id);
+    public Account getAccountById(Long id) {
+        Optional<Account> accOpt = accountRepository.findById(id);
+        if (accOpt.isEmpty()) {
+            throw new RuntimeException("Account not found!");
+        }
+        Account account = accOpt.get();
+        return account;
     }
     
     //getting total balance

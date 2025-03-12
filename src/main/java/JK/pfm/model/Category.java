@@ -14,11 +14,15 @@ public class Category {
     
     private String name;
     
+    private Boolean active;
+    
     // Constructors
     public Category() {
+        this.active = true;
     }
 
     public Category(String name) {
+        this.active = true;
         this.name = name;
     }
     
@@ -33,5 +37,14 @@ public class Category {
 
     public void setName(String name) {
         this.name = name;
+    }
+    
+   
+    public void setActive(Boolean set){
+       this.active = set;
+    }
+    
+    public Boolean getActive(){
+        return active;
     }
 }

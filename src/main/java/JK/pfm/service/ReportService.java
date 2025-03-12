@@ -1,6 +1,7 @@
 package JK.pfm.service;
 
 import JK.pfm.dto.BudgetVsActualDTO;
+import JK.pfm.dto.CashFlowDTO;
 import JK.pfm.dto.DailyTrend;
 import JK.pfm.model.Budget;
 import JK.pfm.model.Category;
@@ -43,6 +44,13 @@ public class ReportService {
         return summary;
     }
     
+    //net savings calculation
+    public BigDecimal calculateNetSavings(LocalDate start, LocalDate end){
+        BigDecimal totalSpending = transactionRepository.sumByTypeAndDate("Expense", start, end);
+        BigDecimal totalIncome = transactionRepository.sumByTypeAndDate("Income", start, end);
+        return totalIncome.subtract(totalSpending);
+    }
+    
     //expenses breaked down by category
     public Map<String, BigDecimal> getSpendingByCategory(LocalDate start, LocalDate end) {
         List<Object[]> results = transactionRepository.sumExpensesByCategory(start, end);
@@ -58,15 +66,17 @@ public class ReportService {
     
     //getting daily trends, for now time unit is day, if trend is too granular, time unit should be increased
     public List<DailyTrend> getDailyTrends(LocalDate start, LocalDate end) {
+        // Retrieve daily transaction data grouped by date and type.
         List<Object[]> results = transactionRepository.getDailyTrends(start, end);
-        // Use a map to combine records for the same date
         Map<LocalDate, DailyTrend> trendMap = new HashMap<>();
 
+        //populating map
         for (Object[] row : results) {
             LocalDate date = (LocalDate) row[0];
             String type = (String) row[1];
             BigDecimal amount = (BigDecimal) row[2];
 
+            //at default expense and income is 0
             DailyTrend dailyTrend = trendMap.getOrDefault(date, new DailyTrend(date, BigDecimal.ZERO, BigDecimal.ZERO));
             if ("Expense".equalsIgnoreCase(type)) {
                 dailyTrend.setTotalExpense(dailyTrend.getTotalExpense().add(amount));
@@ -80,6 +90,24 @@ public class ReportService {
         List<DailyTrend> trends = new ArrayList<>(trendMap.values());
         trends.sort(Comparator.comparing(DailyTrend::getDate));
         return trends;
+    }
+    
+    //calculate net daily cashflow
+    public List<CashFlowDTO> getDailyCashFlow(LocalDate start, LocalDate end) {
+       List<CashFlowDTO> dailyCashFlow = new ArrayList<>();
+       //getting daily income/expense
+       List<DailyTrend> dailyIncomeExpense = getDailyTrends(start, end);
+       
+       for(DailyTrend row : dailyIncomeExpense){
+           BigDecimal inflow = row.getTotalIncome();
+           BigDecimal outflow = row.getTotalExpense();
+           BigDecimal netflow = inflow.subtract(outflow);
+           LocalDate date = row.getDate();
+           //setting CashFlowDTO
+           CashFlowDTO netDailyFlow = new CashFlowDTO(date, inflow, outflow, netflow);
+           dailyCashFlow.add(netDailyFlow);
+       }
+       return dailyCashFlow;
     }
     
     //budget vs actual spending

@@ -41,7 +41,6 @@ public class TransactionService {
         account.setAmount(account.getAmount().add(transaction.getAmount()));
     }
     
-    // Save the transaction
     return transactionRepository.save(transaction);
 }
     
