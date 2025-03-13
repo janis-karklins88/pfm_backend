@@ -2,6 +2,7 @@
 package JK.pfm.util;
 
 import java.math.BigDecimal;
+import java.time.temporal.TemporalAccessor;
 
 
 public class Validations {
@@ -24,6 +25,20 @@ public class Validations {
     public static void numberCheck(BigDecimal number, String fieldName ){
         if(number == null) {
             throw new RuntimeException(fieldName + " cannot be empty!");
+        }
+    }
+    
+    //date field validation
+    public static void checkDate(TemporalAccessor date) {
+        if (date == null) {
+            throw new IllegalArgumentException("Date must be provided!");
+        }
+    }
+    
+    //null validation
+    public static void checkObj(Object object, String objName){
+        if(object == null){
+            throw new IllegalArgumentException(objName + " not provided!");
         }
     }
    

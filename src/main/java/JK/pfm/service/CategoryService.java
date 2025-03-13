@@ -2,6 +2,7 @@ package JK.pfm.service;
 
 import JK.pfm.model.Category;
 import JK.pfm.repository.CategoryRepository;
+import JK.pfm.util.Validations;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -22,6 +23,7 @@ public class CategoryService {
 
     //saving category
     public Category saveCategory(Category category) {
+        Validations.emptyFieldValidation(category.getName(), "name");
         return categoryRepository.save(category);
     }
 
@@ -31,7 +33,6 @@ public class CategoryService {
         Optional<Category> categoryOpt = categoryRepository.findById(id);
         if (categoryOpt.isPresent()) {
             Category category = categoryOpt.get();
-            // Optionally check if it is in use and handle accordingly.
             category.setActive(false);
             categoryRepository.save(category);
         } else {

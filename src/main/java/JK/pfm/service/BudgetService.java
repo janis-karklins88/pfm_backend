@@ -5,6 +5,7 @@ import JK.pfm.model.Category;
 import JK.pfm.repository.BudgetRepository;
 import JK.pfm.util.Validations;
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -24,6 +25,11 @@ public class BudgetService {
 
     //saving budget
     public Budget saveBudget(Budget budget) {
+        Validations.checkDate(budget.getStartDate());
+        Validations.checkDate(budget.getEndDate());
+        Validations.numberCheck(budget.getAmount(), "amount");
+        Validations.checkObj(budget.getCategory(), "class");
+        Validations.checkObj(budget.getUser(), "user");
         return budgetRepository.save(budget);
     }
 

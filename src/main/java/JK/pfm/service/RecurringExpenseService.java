@@ -6,6 +6,7 @@ import JK.pfm.repository.RecurringExpenseRepository;
 import JK.pfm.repository.TransactionRepository;
 import JK.pfm.repository.AccountRepository;
 import JK.pfm.model.Account;
+import JK.pfm.util.Validations;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -35,6 +36,13 @@ public class RecurringExpenseService {
     
     // Save or update a recurring expense
     public RecurringExpense saveRecurringExpense(RecurringExpense expense) {
+        Validations.emptyFieldValidation(expense.getName(), "name");
+        Validations.numberCheck(expense.getAmount(), "amount");
+        Validations.negativeCheck(expense.getAmount(), "amount");
+        Validations.checkDate(expense.getStartDate());
+        Validations.checkDate(expense.getNextDueDate());
+        Validations.emptyFieldValidation(expense.getFrequency(), "frequency");
+        Validations.checkObj(expense.getAccount(), "account");
         return recurringExpenseRepository.save(expense);
     }
     

@@ -7,6 +7,7 @@ import JK.pfm.model.Budget;
 import JK.pfm.model.Category;
 import JK.pfm.repository.BudgetRepository;
 import JK.pfm.repository.TransactionRepository;
+import JK.pfm.util.Validations;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -18,10 +19,7 @@ import java.util.Map;
 import java.util.Set;
 import org.springframework.stereotype.Service;
 
-/**
- *
- * @author user
- */
+
 @Service
 public class ReportService {
 
@@ -35,6 +33,9 @@ public class ReportService {
 
     //total spending and income
     public Map<String, BigDecimal> getSpendingAndIncomeSummary(LocalDate start, LocalDate end) {
+        Validations.checkDate(start);
+        Validations.checkDate(end);
+        
         BigDecimal totalSpending = transactionRepository.sumByTypeAndDate("Expense", start, end);
         BigDecimal totalIncome = transactionRepository.sumByTypeAndDate("Income", start, end);
 
@@ -46,6 +47,9 @@ public class ReportService {
     
     //net savings calculation
     public BigDecimal calculateNetSavings(LocalDate start, LocalDate end){
+        Validations.checkDate(start);
+        Validations.checkDate(end);
+        
         BigDecimal totalSpending = transactionRepository.sumByTypeAndDate("Expense", start, end);
         BigDecimal totalIncome = transactionRepository.sumByTypeAndDate("Income", start, end);
         return totalIncome.subtract(totalSpending);
@@ -53,6 +57,9 @@ public class ReportService {
     
     //expenses breaked down by category
     public Map<String, BigDecimal> getSpendingByCategory(LocalDate start, LocalDate end) {
+        Validations.checkDate(start);
+        Validations.checkDate(end);
+        
         List<Object[]> results = transactionRepository.sumExpensesByCategory(start, end);
         Map<String, BigDecimal> breakdown = new HashMap<>();
 
@@ -66,6 +73,9 @@ public class ReportService {
     
     //getting daily trends, for now time unit is day, if trend is too granular, time unit should be increased
     public List<DailyTrend> getDailyTrends(LocalDate start, LocalDate end) {
+        Validations.checkDate(start);
+        Validations.checkDate(end);
+        
         // Retrieve daily transaction data grouped by date and type.
         List<Object[]> results = transactionRepository.getDailyTrends(start, end);
         Map<LocalDate, DailyTrend> trendMap = new HashMap<>();
@@ -94,6 +104,9 @@ public class ReportService {
     
     //calculate net daily cashflow
     public List<CashFlowDTO> getDailyCashFlow(LocalDate start, LocalDate end) {
+        Validations.checkDate(start);
+        Validations.checkDate(end);
+        
        List<CashFlowDTO> dailyCashFlow = new ArrayList<>();
        //getting daily income/expense
        List<DailyTrend> dailyIncomeExpense = getDailyTrends(start, end);
@@ -112,6 +125,8 @@ public class ReportService {
     
     //budget vs actual spending
     public List<BudgetVsActualDTO> getBudgetVsActual(LocalDate start, LocalDate end) {
+        Validations.checkDate(start);
+        Validations.checkDate(end);
         
         // Retrieve actual spending by category
         List<Object[]> transactionData = transactionRepository.sumExpensesByCategory(start, end);
@@ -122,7 +137,7 @@ public class ReportService {
             actualByCategory.put(category, actual);
         }
         
-        // Retrieve budgets (assuming one budget entry per category)
+        // Retrieve budgets
         List<Budget> budgets = budgetRepository.findAllBudgets();
         Map<String, BigDecimal> budgetByCategory = new HashMap<>();
         for (Budget budget : budgets) {

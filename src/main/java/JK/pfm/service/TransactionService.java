@@ -21,14 +21,20 @@ public class TransactionService {
     public Transaction saveTransaction(Transaction transaction) {
     Account account = transaction.getAccount();
     
-    // amount validation
+    //validations
     Validations.numberCheck(transaction.getAmount(), "Amount");
     Validations.negativeCheck(transaction.getAmount(), "Amount");
+    Validations.checkDate(transaction.getDate());
+    Validations.checkObj(account, "account");
+    Validations.checkObj(transaction.getCategory(), "category");
+    
+    
     
     //transaction type validation
     if(!transaction.getType().equals("Deposit") && !transaction.getType().equals("Expense")){
             throw new RuntimeException("Incorrect transaction type!");
         }
+    
     
     // Update the account balance based on the transaction type
     if (transaction.getType().equals("Expense")) {

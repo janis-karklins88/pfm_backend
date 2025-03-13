@@ -3,6 +3,7 @@ package JK.pfm.service;
 import JK.pfm.model.Account;
 import JK.pfm.model.SavingsGoal;
 import JK.pfm.repository.SavingsGoalRepository;
+import JK.pfm.util.Validations;
 import jakarta.transaction.Transactional;
 import java.math.BigDecimal;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -52,6 +53,9 @@ public class SavingsGoalService {
     
     //update goal amount
     public SavingsGoal updateSavingsGoalAmount(Long id, BigDecimal amount) {
+        Validations.numberCheck(amount, "amount");
+        Validations.negativeCheck(amount, "amount");
+        
         Optional <SavingsGoal> savingsGoalOpt = savingsGoalRepository.findById(id);
         if (savingsGoalOpt.isEmpty()) {
             throw new RuntimeException("Savings goal not found!");
@@ -64,6 +68,10 @@ public class SavingsGoalService {
     //transfer funds
     @Transactional
     public SavingsGoal transferFunds(Long id, BigDecimal amount, String type, Account account){
+        Validations.numberCheck(amount, "amount");
+        Validations.negativeCheck(amount, "amount");
+        Validations.checkObj(account, "acount");
+        
         Optional <SavingsGoal> savingsGoalOpt = savingsGoalRepository.findById(id);
         if (savingsGoalOpt.isEmpty()) {
             throw new RuntimeException("Savings goal not found!");
