@@ -1,7 +1,9 @@
 package JK.pfm.service;
 
 import JK.pfm.model.Account;
+import JK.pfm.model.User;
 import JK.pfm.repository.AccountRepository;
+import JK.pfm.repository.UserRepository;
 import JK.pfm.util.Validations;
 import jakarta.transaction.Transactional;
 import java.math.BigDecimal;
@@ -16,6 +18,8 @@ public class AccountService {
 
     @Autowired
     private AccountRepository accountRepository;
+    
+    @Autowired UserRepository userRepository;
 
     //getting accounts
     public List<Account> getAllAccounts() {
@@ -27,7 +31,6 @@ public class AccountService {
         //validations
         Validations.emptyFieldValidation(account.getName(), "Name");
         Validations.numberCheck(account.getAmount(), "Amount");
-        
         return accountRepository.save(account);
     }
 

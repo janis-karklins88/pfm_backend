@@ -34,20 +34,22 @@ public class UserController {
     // Login user
     @PostMapping("/login")
     public ResponseEntity<String> loginUser(@RequestBody User user) {
-        Optional<User> existingUser = userService.getUserByUsername(user.getUsername());
+        Optional<User> userOpt = userService.getUserByUsername(user.getUsername());
         //check if user exists
-        if (existingUser.isPresent()) {
-            //compare passwords
-            if (passwordEncoder.matches(user.getPassword(), existingUser.get().getPassword())) {
-                //generating token
-                String token = JWTUtil.generateToken(user.getUsername());
-                
-                return ResponseEntity.ok("Bearer " + token);
+        if (userOpt.isEmpty()) {
+            return new ResponseEntity<>("Invalid username", HttpStatus.UNAUTHORIZED);
         }
-            
-        } 
-        return new ResponseEntity<>("Invalid username or password", HttpStatus.UNAUTHORIZED);
+        else {
+            User foundUser = userOpt.get();
+            if (passwordEncoder.matches(user.getPassword(), foundUser.getPassword())){
+                String token = JWTUtil.generateToken(user.getUsername());
+                return ResponseEntity.ok("Bearer " + token);
+            } else{
+                return new ResponseEntity<>("Invalid password", HttpStatus.UNAUTHORIZED);
+            }
+        }
         
+       
     }
     
 }

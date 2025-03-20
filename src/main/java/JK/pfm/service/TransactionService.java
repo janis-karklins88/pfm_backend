@@ -5,10 +5,12 @@ import JK.pfm.model.Transaction;
 import JK.pfm.repository.TransactionRepository;
 import JK.pfm.util.Validations;
 import jakarta.transaction.Transactional;
+import java.time.LocalDate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import java.util.List;
 import java.util.Optional;
+import org.springframework.data.jpa.domain.Specification;
 
 @Service
 public class TransactionService {
@@ -83,6 +85,34 @@ public class TransactionService {
         }
         transactionRepository.deleteById(id);
     }
+    
+    //get ttansactions by parameters
+    public List<Transaction> getTransactionsByFilters(LocalDate startDate, LocalDate endDate, Long categoryId, Long accountId) {
+    // Start with an empty Specification
+    Specification<Transaction> spec = Specification.where(null);
+
+    // Filter by date range if provided
+    if (startDate != null && endDate != null) {
+        spec = spec.and((root, query, cb) -> cb.between(root.get("date"), startDate, endDate));
+    } else if (startDate != null) {
+        spec = spec.and((root, query, cb) -> cb.greaterThanOrEqualTo(root.get("date"), startDate));
+    } else if (endDate != null) {
+        spec = spec.and((root, query, cb) -> cb.lessThanOrEqualTo(root.get("date"), endDate));
+    }
+
+    // Filter by category if provided
+    if (categoryId != null) {
+        spec = spec.and((root, query, cb) -> cb.equal(root.get("category").get("id"), categoryId));
+    }
+
+    // Filter by account if provided
+    if (accountId != null) {
+        spec = spec.and((root, query, cb) -> cb.equal(root.get("account").get("id"), accountId));
+    }
+
+    // If no filter is applied, this returns all transactions
+    return transactionRepository.findAll(spec);
+}
     
     
 }

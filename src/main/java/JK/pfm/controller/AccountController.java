@@ -1,7 +1,11 @@
 package JK.pfm.controller;
 
+import JK.pfm.dto.AccountCreationRequest;
 import JK.pfm.model.Account;
+import JK.pfm.model.User;
+import JK.pfm.repository.UserRepository;
 import JK.pfm.service.AccountService;
+import JK.pfm.service.UserService;
 import java.math.BigDecimal;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -9,6 +13,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/accounts")
@@ -16,6 +21,9 @@ public class AccountController {
 
     @Autowired
     private AccountService accountService;
+    
+    @Autowired
+    private UserRepository userRepository;
     
     //Get all acounts
     @GetMapping
@@ -26,10 +34,20 @@ public class AccountController {
 
     //Create account
     @PostMapping
-    public ResponseEntity<Account> createAccount(@RequestBody Account account) {
-        Account savedAccount = accountService.saveAccount(account);
-        return ResponseEntity.ok(savedAccount);
+    public ResponseEntity<Account> createAccount(@RequestBody AccountCreationRequest request) {
+    // Retrieve user by username
+    Optional<User> userOpt = userRepository.findByUsername(request.getUsername());
+    
+    if (userOpt == null) {
+        return ResponseEntity.badRequest().build(); // Or return an error message if user not found
     }
+    User user = userOpt.get();
+    
+    // Create a new account with the user entity
+    Account account = new Account(request.getName(), request.getAmount(), user);
+    Account savedAccount = accountService.saveAccount(account);
+    return ResponseEntity.ok(savedAccount);
+}
 
     //Delete account
     @DeleteMapping("{id}")

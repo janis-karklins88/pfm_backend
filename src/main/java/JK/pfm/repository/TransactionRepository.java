@@ -7,8 +7,9 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.List;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 
-public interface TransactionRepository extends JpaRepository<Transaction, Long> {
+public interface TransactionRepository extends JpaRepository<Transaction, Long>, JpaSpecificationExecutor<Transaction> {
     
     List<Transaction> findByCategoryId(Long categoryId);
     
@@ -32,5 +33,11 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
            "ORDER BY t.date")
     List<Object[]> getDailyTrends(@Param("start") LocalDate start,
                                   @Param("end") LocalDate end);
+    
+    //finding transactions between dates
+    List<Transaction> findByDateBetween(LocalDate startDate, LocalDate endDate);
+    
+    //find with paremeters
+    
     
 }
