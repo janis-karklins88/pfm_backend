@@ -3,7 +3,7 @@ package JK.pfm.model;
 
 import jakarta.persistence.*;
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
+import java.time.LocalDate;
 import javax.validation.constraints.NotNull;
 
 @Entity
@@ -15,7 +15,7 @@ public class Transaction {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     
-    private LocalDateTime date;
+    private LocalDate date;
     
     private BigDecimal amount;
     
@@ -37,7 +37,7 @@ public class Transaction {
     public Transaction() {
     }
 
-    public Transaction(LocalDateTime date, BigDecimal amount, Account account, Category category, String type, String description) {
+    public Transaction(LocalDate date, BigDecimal amount, Account account, Category category, String type, String description) {
         this.date = date;
         this.amount = amount;
         this.account = account;
@@ -51,11 +51,11 @@ public class Transaction {
         return id;
     }
 
-    public LocalDateTime getDate() {
+    public LocalDate getDate() {
         return date;
     }
 
-    public void setDate(LocalDateTime date) {
+    public void setDate(LocalDate date) {
         this.date = date;
     }
 

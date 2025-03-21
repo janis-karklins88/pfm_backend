@@ -87,7 +87,7 @@ public class RecurringExpenseService {
             transaction.setAccount(account);
             transaction.setAmount(amount);
             transaction.setType("Expense");
-            transaction.setDate(LocalDate.now().atStartOfDay());
+            transaction.setDate(LocalDate.now());
             transaction.setDescription("Recurring expense: " + expense.getName());
             transactionRepository.save(transaction);
             

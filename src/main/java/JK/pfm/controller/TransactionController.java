@@ -1,14 +1,24 @@
 package JK.pfm.controller;
 
+import JK.pfm.dto.TransactionCreationRequest;
+import JK.pfm.model.Account;
+import JK.pfm.model.Category;
 import JK.pfm.model.Transaction;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import JK.pfm.repository.AccountRepository;
+import JK.pfm.repository.CategoryRepository;
+import JK.pfm.security.CustomUserDetails;
 import JK.pfm.service.TransactionService;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/transactions")
@@ -17,21 +27,47 @@ public class TransactionController {
     @Autowired
     private TransactionService transactionService;
     
-    //get all transactions
-    /*@GetMapping
-    public ResponseEntity<List<Transaction>> getTransactions() {
-        List<Transaction> transactions = transactionService.getAllTransactions();
-        return ResponseEntity.ok(transactions);
-    }*/
+    @Autowired 
+    private AccountRepository accountRepository;
     
-    //Create transaction
+    @Autowired
+    private CategoryRepository categoryRepository;
+    
+    // Create transaction
     @PostMapping
-    public ResponseEntity<Transaction> createTransaction(@RequestBody Transaction transaction) {
+    public ResponseEntity<Transaction> createTransaction(@RequestBody TransactionCreationRequest request) {
+        // Retrieve the authenticated user details
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
+        Long userId = userDetails.getId();
+        
+        // Lookup category (assumed to be global)
+        Optional<Category> catOpt = categoryRepository.findByName(request.getCategoryName());
+        if (catOpt.isEmpty()){
+            throw new RuntimeException("Incorrect category!");
+        }
+        Category category = catOpt.get();
+        
+        // Lookup account belonging to the authenticated user (account name must be unique per user)
+        Optional<Account> accOpt = accountRepository.findByUserIdAndName(userId, request.getAccountName());
+        if (accOpt.isEmpty()){
+            throw new RuntimeException("Incorrect account!");
+        }
+        Account account = accOpt.get();
+        
+        // Create and save the transaction
+        Transaction transaction = new Transaction(
+                request.getDate(), 
+                request.getAmount(), 
+                account, 
+                category, 
+                request.getType(), 
+                request.getDescription());
         Transaction savedTransaction = transactionService.saveTransaction(transaction);
-        return ResponseEntity.ok(savedTransaction);
+        return ResponseEntity.status(HttpStatus.CREATED).body(savedTransaction);
     }
     
-    //Get transaction by ID
+    // Get transaction by ID (consider adding a check that the transaction belongs to the authenticated user)
     @GetMapping("/{id}")
     public ResponseEntity<Transaction> getTransaction(@PathVariable Long id) {
         return transactionService.getTransactionById(id)
@@ -39,26 +75,30 @@ public class TransactionController {
             .orElse(ResponseEntity.notFound().build());
     }
     
-    //Delete transaction
+    // Delete transaction
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteTransaction(@PathVariable Long id) {
         transactionService.deleteTransaction(id);
         return ResponseEntity.noContent().build();
     }
     
-    //
+    // Get transactions with optional filters (date range, category, account) and filter by authenticated user
     @GetMapping
     public ResponseEntity<List<Transaction>> getTransactions(
-    @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
-    @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
-    @RequestParam(required = false) Long categoryId,
-    @RequestParam(required = false) Long accountId) {
-
-    List<Transaction> transactions = transactionService.getTransactionsByFilters(startDate, endDate, categoryId, accountId);
-    if (transactions == null) {
-        transactions = new ArrayList<>();
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
+            @RequestParam(required = false) Long categoryId,
+            @RequestParam(required = false) Long accountId) {
+        
+        // Retrieve user id from authentication
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
+        Long userId = userDetails.getId();
+        
+        List<Transaction> transactions = transactionService.getTransactionsByFilters(startDate, endDate, categoryId, accountId, userId);
+        if (transactions == null) {
+            transactions = new ArrayList<>();
+        }
+        return ResponseEntity.ok(transactions);
     }
-    return ResponseEntity.ok(transactions);
-}
-
 }

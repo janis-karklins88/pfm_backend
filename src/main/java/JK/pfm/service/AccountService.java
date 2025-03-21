@@ -4,6 +4,7 @@ import JK.pfm.model.Account;
 import JK.pfm.model.User;
 import JK.pfm.repository.AccountRepository;
 import JK.pfm.repository.UserRepository;
+import JK.pfm.util.AccountSpecifications;
 import JK.pfm.util.Validations;
 import jakarta.transaction.Transactional;
 import java.math.BigDecimal;
@@ -19,11 +20,15 @@ public class AccountService {
     @Autowired
     private AccountRepository accountRepository;
     
-    @Autowired UserRepository userRepository;
 
     //getting accounts
     public List<Account> getAllAccounts() {
         return accountRepository.findAll();
+    }
+    
+    //getting accounts for user
+    public List<Account> getAccountsForUser(Long userId) {
+        return accountRepository.findAll(AccountSpecifications.belongsToUser(userId));
     }
 
     //saving account
