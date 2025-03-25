@@ -1,9 +1,7 @@
 package JK.pfm.service;
 
 import JK.pfm.model.Account;
-import JK.pfm.model.User;
 import JK.pfm.repository.AccountRepository;
-import JK.pfm.repository.UserRepository;
 import JK.pfm.util.AccountSpecifications;
 import JK.pfm.util.Validations;
 import jakarta.transaction.Transactional;

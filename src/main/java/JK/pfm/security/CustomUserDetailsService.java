@@ -1,7 +1,7 @@
 package JK.pfm.security;
 
-import JK.pfm.model.User; // Adjust with your actual User model package
-import JK.pfm.repository.UserRepository; // Adjust accordingly
+import JK.pfm.model.User; 
+import JK.pfm.repository.UserRepository; 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
@@ -21,6 +21,6 @@ public class CustomUserDetailsService implements UserDetailsService {
                 .orElseThrow(() -> new UsernameNotFoundException("User not found"));
         
         // Build and return a CustomUserDetails instance
-        return new CustomUserDetails(user.getId(), user.getUsername(), user.getPassword()); // Adjust getAuthorities() as needed
+        return new CustomUserDetails(user.getId(), user.getUsername(), user.getPassword()); 
     }
 }
