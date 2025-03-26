@@ -7,7 +7,6 @@ import java.time.LocalDate;
 
 public class RecurringExpenseCreation {
     private LocalDate startDate;
-    private LocalDate nextDueDate;
     private BigDecimal amount;
     private String categoryName;
     private String accountName;
@@ -53,14 +52,6 @@ public class RecurringExpenseCreation {
     
     public LocalDate getStartDate(){
         return startDate;
-    }
-    
-    public void setNextDueDate(LocalDate date){
-        this.nextDueDate = date;
-    }
-    
-    public LocalDate getNextDueDate(){
-        return nextDueDate;
     }
     
     public String getFrequency() {

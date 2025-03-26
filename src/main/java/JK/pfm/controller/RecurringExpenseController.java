@@ -4,18 +4,22 @@ import JK.pfm.dto.RecurringExpenseCreation;
 import JK.pfm.model.Account;
 import JK.pfm.model.Category;
 import JK.pfm.model.RecurringExpense;
+import JK.pfm.model.Transaction;
 
 import JK.pfm.repository.AccountRepository;
 import JK.pfm.repository.CategoryRepository;
 
 import JK.pfm.security.CustomUserDetails;
 import JK.pfm.service.RecurringExpenseService;
+import java.time.LocalDate;
+import java.util.ArrayList;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Optional;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -34,13 +38,21 @@ public class RecurringExpenseController {
     
     // Retrieve all recurring expenses
     @GetMapping
-    public ResponseEntity<List<RecurringExpense>> getAllRecurringExpenses() {
+    public ResponseEntity<List<RecurringExpense>> getRecurringExpenses(
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
+            @RequestParam(required = false) Long categoryId,
+            @RequestParam(required = false) Long accountId) {
+        
         // Retrieve user id from authentication
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
         Long userId = userDetails.getId();
         
-        List<RecurringExpense> expenses = recurringExpenseService.getRecurringExpensesForUser(userId);
+        List<RecurringExpense> expenses = recurringExpenseService.getRecurringExpensesByFilters(startDate, endDate, categoryId, accountId, userId);
+        if (expenses == null) {
+            expenses = new ArrayList<>();
+        }
         return ResponseEntity.ok(expenses);
     }
     
@@ -67,7 +79,7 @@ public class RecurringExpenseController {
         }
         Category category = catOpt.get();
         
-        RecurringExpense expense = new RecurringExpense(request.getName(), request.getAmount(), request.getStartDate(), request.getFrequency(), request.getNextDueDate(), account, category);
+        RecurringExpense expense = new RecurringExpense(request.getName(), request.getAmount(), request.getStartDate(), request.getFrequency(), account, category);
         RecurringExpense savedExpense = recurringExpenseService.saveRecurringExpense(expense);
         return ResponseEntity.ok(savedExpense);
     }

@@ -34,14 +34,14 @@ public class RecurringExpense {
     // Constructors
     public RecurringExpense() {}
 
-    public RecurringExpense(String name, BigDecimal amount, LocalDate startDate, String frequency, LocalDate nextDueDate, Account account, Category category) {
+    public RecurringExpense(String name, BigDecimal amount, LocalDate startDate, String frequency, Account account, Category category) {
         this.name = name;
         this.amount = amount;
         this.startDate = startDate;
         this.frequency = frequency;
-        this.nextDueDate = nextDueDate;
         this.account = account;
         this.category = category;
+        this.nextDueDate = startDate;
     }
 
     // Getters and setters

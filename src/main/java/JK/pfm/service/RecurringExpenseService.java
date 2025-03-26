@@ -7,6 +7,7 @@ import JK.pfm.repository.TransactionRepository;
 import JK.pfm.repository.AccountRepository;
 import JK.pfm.model.Account;
 import JK.pfm.specifications.RecurringExpenseSpecifications;
+import JK.pfm.specifications.TransactionSpecifications;
 import JK.pfm.util.Validations;
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -17,6 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
+import org.springframework.data.jpa.domain.Specification;
 
 @Service
 public class RecurringExpenseService {
@@ -31,8 +33,30 @@ public class RecurringExpenseService {
     private AccountRepository accountRepository;
     
     // Get all recurring expenses
-    public List<RecurringExpense> getRecurringExpensesForUser(Long userId) {
-        return recurringExpenseRepository.findAll(RecurringExpenseSpecifications.belongsToUser(userId));
+    public List<RecurringExpense> getRecurringExpensesByFilters(LocalDate startDate, LocalDate endDate, Long categoryId, Long accountId, Long userId) {
+        Specification<RecurringExpense> spec = Specification.where(null);
+
+    // Build the specification using our reusable methods
+        if (startDate != null && endDate != null) {
+            spec = spec.and(RecurringExpenseSpecifications.dateBetween(startDate, endDate));
+        } else if (startDate != null) {
+            spec = spec.and(RecurringExpenseSpecifications.dateGreaterThanOrEqual(startDate));
+        } else if (endDate != null) {
+            spec = spec.and(RecurringExpenseSpecifications.dateLessThanOrEqual(endDate));
+        }
+
+        if (categoryId != null) {
+            spec = spec.and(RecurringExpenseSpecifications.categoryEquals(categoryId));
+        }
+
+        if (accountId != null) {
+            spec = spec.and(RecurringExpenseSpecifications.accountEquals(accountId));
+        }
+    
+        // Always restrict transactions to the authenticated user
+        spec = spec.and(RecurringExpenseSpecifications.belongsToUser(userId));
+    
+        return recurringExpenseRepository.findAll(spec);
 }
     
     // Save or update a recurring expense
@@ -41,7 +65,6 @@ public class RecurringExpenseService {
         Validations.numberCheck(expense.getAmount(), "amount");
         Validations.negativeCheck(expense.getAmount(), "amount");
         Validations.checkDate(expense.getStartDate());
-        Validations.checkDate(expense.getNextDueDate());
         Validations.emptyFieldValidation(expense.getFrequency(), "frequency");
         Validations.checkObj(expense.getAccount(), "account");
         Validations.checkObj(expense.getCategory(), "category");
@@ -84,7 +107,7 @@ public class RecurringExpenseService {
     }
     
     //processing recurring expenses
-    @Scheduled(cron = "0 0 0 * * ?") // every day at midnight
+    @Scheduled(cron = "0 0 * * * ?") // every day at midnight
     @Transactional
     public void processRecurringExpenses() {
         LocalDate today = LocalDate.now();

@@ -1,11 +1,16 @@
 package JK.pfm.service;
 
+import JK.pfm.dto.UnifiedTransactionDTO;
 import JK.pfm.model.Account;
+import JK.pfm.model.RecurringExpense;
 import JK.pfm.model.Transaction;
 import JK.pfm.repository.TransactionRepository;
+import JK.pfm.specifications.TransactionSpecifications;
 import JK.pfm.util.Validations;
 import jakarta.transaction.Transactional;
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.Comparator;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
@@ -17,6 +22,10 @@ public class TransactionService {
 
     @Autowired
     private TransactionRepository transactionRepository;
+    
+    @Autowired 
+    private RecurringExpenseService recurringExpenseService;
+    
     
     // Save a new transaction with validations and account balance updates
     @Transactional
@@ -89,31 +98,76 @@ public class TransactionService {
     
     // Get transactions by filters including a filter for the authenticated user
     public List<Transaction> getTransactionsByFilters(LocalDate startDate, LocalDate endDate, Long categoryId, Long accountId, Long userId) {
-        // Start with an empty Specification
         Specification<Transaction> spec = Specification.where(null);
 
-        // Filter by date range if provided
+    // Build the specification using our reusable methods
         if (startDate != null && endDate != null) {
-            spec = spec.and((root, query, cb) -> cb.between(root.get("date"), startDate, endDate));
+            spec = spec.and(TransactionSpecifications.dateBetween(startDate, endDate));
         } else if (startDate != null) {
-            spec = spec.and((root, query, cb) -> cb.greaterThanOrEqualTo(root.get("date"), startDate));
+            spec = spec.and(TransactionSpecifications.dateGreaterThanOrEqual(startDate));
         } else if (endDate != null) {
-            spec = spec.and((root, query, cb) -> cb.lessThanOrEqualTo(root.get("date"), endDate));
+            spec = spec.and(TransactionSpecifications.dateLessThanOrEqual(endDate));
         }
 
-        // Filter by category if provided
         if (categoryId != null) {
-            spec = spec.and((root, query, cb) -> cb.equal(root.get("category").get("id"), categoryId));
+            spec = spec.and(TransactionSpecifications.categoryEquals(categoryId));
         }
 
-        // Filter by account if provided
         if (accountId != null) {
-            spec = spec.and((root, query, cb) -> cb.equal(root.get("account").get("id"), accountId));
+            spec = spec.and(TransactionSpecifications.accountEquals(accountId));
         }
-        
-        // Filter by the authenticated user's id (via the account relationship)
-        spec = spec.and((root, query, cb) -> cb.equal(root.get("account").get("user").get("id"), userId));
-        
+    
+        // Always restrict transactions to the authenticated user
+        spec = spec.and(TransactionSpecifications.belongsToUser(userId));
+    
         return transactionRepository.findAll(spec);
+}
+    
+    //unified transaction list, not needed right now
+    public List<UnifiedTransactionDTO> getUnifiedTransactions(LocalDate startDate, LocalDate endDate,
+                                                               Long categoryId, Long accountId, Long userId) {
+        // Fetch transactions and recurring expenses using existing methods
+        List<Transaction> transactions = this.getTransactionsByFilters(startDate, endDate, categoryId, accountId, userId);
+        List<RecurringExpense> recurringExpenses = recurringExpenseService.getRecurringExpensesByFilters(startDate, endDate, categoryId, accountId, userId);
+
+        List<UnifiedTransactionDTO> unifiedList = new ArrayList<>();
+
+        // Map Transactions to UnifiedTransactionDTO
+        for (Transaction txn : transactions) {
+            UnifiedTransactionDTO dto = new UnifiedTransactionDTO();
+            dto.setId(txn.getId());
+            dto.setDate(txn.getDate());  // assuming "date" is the execution date for one-off transactions
+            dto.setAmount(txn.getAmount());
+            dto.setCategoryName(txn.getCategory() != null ? txn.getCategory().getName() : null);
+            dto.setAccountName(txn.getAccount() != null ? txn.getAccount().getName() : null);
+            dto.setType(txn.getType()); // "Deposit" or "Expense"
+            dto.setDescription(txn.getDescription());
+            // frequency not applicable for one-off transactions
+            unifiedList.add(dto);
+        }
+
+        // Map RecurringExpenses to UnifiedTransactionDTO
+        for (RecurringExpense recExp : recurringExpenses) {
+            UnifiedTransactionDTO dto = new UnifiedTransactionDTO();
+            dto.setId(recExp.getId());
+            // For recurring expenses, choose a representative date.
+            // You might use the nextDueDate if available; otherwise, use startDate.
+            dto.setDate(recExp.getNextDueDate() != null ? recExp.getNextDueDate() : recExp.getStartDate());
+            dto.setAmount(recExp.getAmount());
+            dto.setCategoryName(recExp.getCategory() != null ? recExp.getCategory().getName() : null);
+            dto.setAccountName(recExp.getAccount() != null ? recExp.getAccount().getName() : null);
+            // Here we label it as "Recurring Expense"
+            dto.setType("Recurring Expense");
+            // You can include additional recurring-specific info, such as frequency:
+            dto.setFrequency(recExp.getFrequency());
+            // Optionally, set description if available
+            dto.setDescription(recExp.getName()); // or another field
+            unifiedList.add(dto);
+        }
+
+        // Sort the unified list by date (ascending order)
+        unifiedList.sort(Comparator.comparing(UnifiedTransactionDTO::getDate));
+
+        return unifiedList;
     }
 }

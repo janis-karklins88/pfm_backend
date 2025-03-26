@@ -1,6 +1,7 @@
 package JK.pfm.controller;
 
 import JK.pfm.dto.TransactionCreationRequest;
+import JK.pfm.dto.UnifiedTransactionDTO;
 import JK.pfm.model.Account;
 import JK.pfm.model.Category;
 import JK.pfm.model.Transaction;
@@ -32,6 +33,8 @@ public class TransactionController {
     
     @Autowired
     private CategoryRepository categoryRepository;
+    
+
     
     // Create transaction
     @PostMapping
@@ -109,5 +112,26 @@ public class TransactionController {
             transactions = new ArrayList<>();
         }
         return ResponseEntity.ok(transactions);
+    }
+    
+    //Unified transaction list
+    @GetMapping("/all")
+    public ResponseEntity<List<UnifiedTransactionDTO>> getUnifiedTransactions(
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
+            @RequestParam(required = false) Long categoryId,
+            @RequestParam(required = false) Long accountId) {
+
+        // Retrieve authenticated user's ID
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
+        Long userId = userDetails.getId();
+
+        List<UnifiedTransactionDTO> unifiedTransactions =
+                transactionService.getUnifiedTransactions(startDate, endDate, categoryId, accountId, userId);
+        if (unifiedTransactions == null) {
+            unifiedTransactions = new ArrayList<>();
+        }
+        return ResponseEntity.ok(unifiedTransactions);
     }
 }
