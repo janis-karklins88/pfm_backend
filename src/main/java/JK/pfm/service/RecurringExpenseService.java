@@ -6,6 +6,7 @@ import JK.pfm.repository.RecurringExpenseRepository;
 import JK.pfm.repository.TransactionRepository;
 import JK.pfm.repository.AccountRepository;
 import JK.pfm.model.Account;
+import JK.pfm.specifications.RecurringExpenseSpecifications;
 import JK.pfm.util.Validations;
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -30,9 +31,9 @@ public class RecurringExpenseService {
     private AccountRepository accountRepository;
     
     // Get all recurring expenses
-    public List<RecurringExpense> getAllRecurringExpenses() {
-        return recurringExpenseRepository.findAll();
-    }
+    public List<RecurringExpense> getRecurringExpensesForUser(Long userId) {
+        return recurringExpenseRepository.findAll(RecurringExpenseSpecifications.belongsToUser(userId));
+}
     
     // Save or update a recurring expense
     public RecurringExpense saveRecurringExpense(RecurringExpense expense) {
@@ -43,6 +44,7 @@ public class RecurringExpenseService {
         Validations.checkDate(expense.getNextDueDate());
         Validations.emptyFieldValidation(expense.getFrequency(), "frequency");
         Validations.checkObj(expense.getAccount(), "account");
+        Validations.checkObj(expense.getCategory(), "category");
         return recurringExpenseRepository.save(expense);
     }
     
@@ -52,8 +54,18 @@ public class RecurringExpenseService {
     }
     
     // Delete a recurring expense by ID
-    public void deleteRecurringExpense(Long id) {
+    public boolean deleteRecurringExpense(Long id, Long userId) {
+        Optional<RecurringExpense> recExpOpt = recurringExpenseRepository.findById(id);
+        if(recExpOpt.isEmpty()){
+            throw new RuntimeException("Incorrect expense!");
+        }
+        RecurringExpense recurringExpense = recExpOpt.get();
+        if (!recurringExpense.getAccount().getUser().getId().equals(userId)) {
+            // If not, return false (or throw an exception)
+            return false;
+        }
         recurringExpenseRepository.deleteById(id);
+        return true;
     }
     
     //get next due date from frequency

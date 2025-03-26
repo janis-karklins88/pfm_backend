@@ -41,7 +41,7 @@ public class TransactionController {
         CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
         Long userId = userDetails.getId();
         
-        // Lookup category (assumed to be global)
+        // Lookup category
         Optional<Category> catOpt = categoryRepository.findByName(request.getCategoryName());
         if (catOpt.isEmpty()){
             throw new RuntimeException("Incorrect category!");
@@ -78,7 +78,16 @@ public class TransactionController {
     // Delete transaction
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteTransaction(@PathVariable Long id) {
-        transactionService.deleteTransaction(id);
+        // Get authenticated user's ID
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
+        Long userId = userDetails.getId();
+    
+        // Try to delete the transaction for this user
+        boolean deleted = transactionService.deleteTransaction(id, userId);
+        if (!deleted) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
         return ResponseEntity.noContent().build();
     }
     

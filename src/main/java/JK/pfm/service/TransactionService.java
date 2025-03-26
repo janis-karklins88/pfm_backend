@@ -61,12 +61,18 @@ public class TransactionService {
     
     // Delete a transaction by id, adjusting account balance before deletion
     @Transactional
-    public void deleteTransaction(Long id) {
+    public boolean deleteTransaction(Long id, Long userId) {
         Optional<Transaction> transactionOpt = transactionRepository.findById(id);
         if (transactionOpt.isEmpty()) {
             throw new RuntimeException("Transaction not found!");
         }
         Transaction transaction = transactionOpt.get();
+        if (!transaction.getAccount().getUser().getId().equals(userId)) {
+            // If not, return false (or throw an exception)
+            return false;
+        }
+        
+        //fund handling
         Account account = transaction.getAccount();
         // Revert the account balance change before deletion
         if (transaction.getType().equals("Expense")) {
@@ -78,6 +84,7 @@ public class TransactionService {
             account.setAmount(account.getAmount().subtract(transaction.getAmount()));
         }
         transactionRepository.deleteById(id);
+        return true;
     }
     
     // Get transactions by filters including a filter for the authenticated user
