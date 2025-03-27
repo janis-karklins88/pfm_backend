@@ -29,7 +29,7 @@ public class SavingsGoal {
     public SavingsGoal() {
     }
 
-    public SavingsGoal(String name, BigDecimal targetAmount, BigDecimal currentAmount, LocalDate targetDate, String description, User user) {
+    public SavingsGoal(String name, BigDecimal targetAmount, BigDecimal currentAmount, String description, User user) {
         this.name = name;
         this.targetAmount = targetAmount;
         this.currentAmount = currentAmount;

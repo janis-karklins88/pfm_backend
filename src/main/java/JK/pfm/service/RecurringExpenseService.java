@@ -6,6 +6,7 @@ import JK.pfm.repository.RecurringExpenseRepository;
 import JK.pfm.repository.TransactionRepository;
 import JK.pfm.repository.AccountRepository;
 import JK.pfm.model.Account;
+import JK.pfm.model.Category;
 import JK.pfm.specifications.RecurringExpenseSpecifications;
 import JK.pfm.specifications.TransactionSpecifications;
 import JK.pfm.util.Validations;
@@ -80,7 +81,7 @@ public class RecurringExpenseService {
     public boolean deleteRecurringExpense(Long id, Long userId) {
         Optional<RecurringExpense> recExpOpt = recurringExpenseRepository.findById(id);
         if(recExpOpt.isEmpty()){
-            throw new RuntimeException("Incorrect expense!");
+            throw new RuntimeException("Incorrect payment!");
         }
         RecurringExpense recurringExpense = recExpOpt.get();
         if (!recurringExpense.getAccount().getUser().getId().equals(userId)) {
@@ -94,7 +95,8 @@ public class RecurringExpenseService {
     //get next due date from frequency
     private LocalDate calculateNextDueDate(RecurringExpense expense){
         LocalDate currentDueDate = expense.getNextDueDate();
-        switch (expense.getFrequency()) {
+        String frequency = expense.getFrequency().toUpperCase();
+        switch (frequency) {
             case "WEEKLY":
                 return currentDueDate.plusWeeks(1);
             case "MONTHLY":
@@ -116,14 +118,18 @@ public class RecurringExpenseService {
         for (RecurringExpense expense : recurringExpenseRepository.findByNextDueDateLessThanEqual(today)) {
             Account account = expense.getAccount();
             BigDecimal amount = expense.getAmount();
+            Category category = expense.getCategory();
+            String frequency = expense.getFrequency();
+            String name = expense.getName();
             
             // Create a new expense transaction
             Transaction transaction = new Transaction();
             transaction.setAccount(account);
             transaction.setAmount(amount);
+            transaction.setCategory(category);
             transaction.setType("Expense");
             transaction.setDate(LocalDate.now());
-            transaction.setDescription("Recurring expense: " + expense.getName());
+            transaction.setDescription(frequency + "payment: " + name);
             transactionRepository.save(transaction);
             
             // Update account balance (check for sufficient funds if needed)

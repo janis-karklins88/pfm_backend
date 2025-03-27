@@ -13,15 +13,15 @@ public class RecurringExpenseSpecifications {
     
     // Filter transactions by date range
     public static Specification<RecurringExpense> dateBetween(LocalDate startDate, LocalDate endDate) {
-        return (root, query, cb) -> cb.between(root.get("startDate"), startDate, endDate);
+        return (root, query, cb) -> cb.between(root.get("nextDueDate"), startDate, endDate);
     }
 
     public static Specification<RecurringExpense> dateGreaterThanOrEqual(LocalDate startDate) {
-        return (root, query, cb) -> cb.greaterThanOrEqualTo(root.get("startDate"), startDate);
+        return (root, query, cb) -> cb.greaterThanOrEqualTo(root.get("nextDueDate"), startDate);
     }
 
     public static Specification<RecurringExpense> dateLessThanOrEqual(LocalDate endDate) {
-        return (root, query, cb) -> cb.lessThanOrEqualTo(root.get("startDate"), endDate);
+        return (root, query, cb) -> cb.lessThanOrEqualTo(root.get("nextDueDate"), endDate);
     }
 
     // Filter by category id

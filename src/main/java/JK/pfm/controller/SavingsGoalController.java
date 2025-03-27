@@ -1,18 +1,25 @@
 package JK.pfm.controller;
 
+import JK.pfm.dto.SavingGoalCreation;
 import JK.pfm.model.Account;
-import JK.pfm.model.Budget;
+
 import JK.pfm.model.SavingsGoal;
+import JK.pfm.model.User;
+import JK.pfm.repository.UserRepository;
+
 import JK.pfm.service.AccountService;
 import JK.pfm.service.SavingsGoalService;
+import JK.pfm.util.SecurityUtil;
 import JK.pfm.util.Validations;
 import java.math.BigDecimal;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Map;
+
 
 @RestController
 @RequestMapping("/api/savings-goals")
@@ -23,17 +30,26 @@ public class SavingsGoalController {
     
     @Autowired
     private AccountService accountService;
+    
+    @Autowired 
+    private UserRepository userRepository;
+    
+    
 
     //Get all saving goals
     @GetMapping
     public ResponseEntity<List<SavingsGoal>> getAllSavingsGoals() {
-        List<SavingsGoal> goals = savingsGoalService.getAllSavingsGoals();
+        //get user
+        long userId = SecurityUtil.getUserId();
+        List<SavingsGoal> goals = savingsGoalService.getAllSavingsGoals(userId);
         return ResponseEntity.ok(goals);
     }
 
     //Create saving goal
     @PostMapping
-    public ResponseEntity<SavingsGoal> createSavingsGoal(@RequestBody SavingsGoal goal) {
+    public ResponseEntity<SavingsGoal> createSavingsGoal(@RequestBody SavingGoalCreation request) {
+        User user = SecurityUtil.getUser(userRepository);
+        SavingsGoal goal = new SavingsGoal(request.getName(), request.getTargetAmount(), request.getCurrentAmount(), request.getDescription(), user);
         SavingsGoal savedGoal = savingsGoalService.saveSavingsGoal(goal);
         return ResponseEntity.ok(savedGoal);
     }

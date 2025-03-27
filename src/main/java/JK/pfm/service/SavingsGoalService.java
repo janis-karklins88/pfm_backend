@@ -3,6 +3,7 @@ package JK.pfm.service;
 import JK.pfm.model.Account;
 import JK.pfm.model.SavingsGoal;
 import JK.pfm.repository.SavingsGoalRepository;
+import JK.pfm.specifications.SavingsGoalSpecification;
 import JK.pfm.util.Validations;
 import jakarta.transaction.Transactional;
 import java.math.BigDecimal;
@@ -11,6 +12,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Optional;
+import org.springframework.data.jpa.domain.Specification;
 
 @Service
 public class SavingsGoalService {
@@ -19,8 +21,9 @@ public class SavingsGoalService {
     private SavingsGoalRepository savingsGoalRepository;
 
     //getting all saving goals
-    public List<SavingsGoal> getAllSavingsGoals() {
-        return savingsGoalRepository.findAll();
+    public List<SavingsGoal> getAllSavingsGoals(Long userId) {
+        Specification<SavingsGoal> spec = Specification.where(SavingsGoalSpecification.belongsToUser(userId));
+        return savingsGoalRepository.findAll(spec);
     }
 
     //saving saving goals
