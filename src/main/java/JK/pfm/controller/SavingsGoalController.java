@@ -1,13 +1,14 @@
 package JK.pfm.controller;
 
 import JK.pfm.dto.SavingGoalCreation;
+import JK.pfm.dto.SavingsFundTransferDTO;
 import JK.pfm.model.Account;
 
 import JK.pfm.model.SavingsGoal;
 import JK.pfm.model.User;
+import JK.pfm.repository.AccountRepository;
 import JK.pfm.repository.UserRepository;
 
-import JK.pfm.service.AccountService;
 import JK.pfm.service.SavingsGoalService;
 import JK.pfm.util.SecurityUtil;
 import JK.pfm.util.Validations;
@@ -19,6 +20,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 
 @RestController
@@ -29,7 +31,7 @@ public class SavingsGoalController {
     private SavingsGoalService savingsGoalService;
     
     @Autowired
-    private AccountService accountService;
+    private AccountRepository accountRepository;
     
     @Autowired 
     private UserRepository userRepository;
@@ -65,7 +67,8 @@ public class SavingsGoalController {
     //delete saving goal by id
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteSavingsGoal(@PathVariable Long id) {
-        savingsGoalService.deleteSavingsGoal(id);
+        Long userId = SecurityUtil.getUserId();
+        savingsGoalService.deleteSavingsGoal(id, userId);
         return ResponseEntity.noContent().build();
     }
     
@@ -82,35 +85,13 @@ public class SavingsGoalController {
      @PatchMapping("/{id}/transfer-funds")
     public ResponseEntity<SavingsGoal> transferFundsSavingsGoal(
             @PathVariable Long id, 
-            @RequestBody Map<String, Object> request) {
-        
-        // Extract the amount from the request
-        BigDecimal amount;
-        try {
-            amount = new BigDecimal(request.get("amount").toString());
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().build();
-        }
+            @RequestBody SavingsFundTransferDTO request) {
+        //get user id
+        Long userId = SecurityUtil.getUserId();
+        // Load the account
+        Optional<Account> accOpt = accountRepository.findByUserIdAndName(userId, request.getAccountName());
 
-        // Extract the operation type from the request
-        String type = request.get("type").toString();
-        if (!"Deposit".equalsIgnoreCase(type) && !"Withdraw".equalsIgnoreCase(type)) {
-            return ResponseEntity.badRequest().build();
-        }
-
-        // Extract accountId from the request. Expecting a key "accountId"
-        Long accountId;
-        try {
-            accountId = Long.valueOf(request.get("accountId").toString());
-        } catch (NumberFormatException e) {
-            return ResponseEntity.badRequest().build();
-        }
-
-        // Load the account entity
-        Account account = accountService.getAccountById(accountId);
-
-        // Call the service layer to perform the transfer operation, now with the account parameter
-        SavingsGoal updatedGoal = savingsGoalService.transferFunds(id, amount, type, account);
+        SavingsGoal updatedGoal = savingsGoalService.transferFunds(id, request.getAmount(), request.getType(), accOpt);
         return ResponseEntity.ok(updatedGoal);
     }
 }
