@@ -5,6 +5,7 @@ import JK.pfm.model.Category;
 import JK.pfm.repository.BudgetRepository;
 import JK.pfm.security.CustomUserDetails;
 import JK.pfm.specifications.BudgetSpecifications;
+import JK.pfm.util.SecurityUtil;
 import JK.pfm.util.Validations;
 import jakarta.transaction.Transactional;
 import java.math.BigDecimal;
@@ -79,9 +80,7 @@ public class BudgetService {
         Validations.numberCheck(amount, "Amount");
         Validations.negativeCheck(amount, "Amount");
         //get userId
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
-        Long userId = userDetails.getId();
+        Long userId = SecurityUtil.getUserId();
         
         //get budget
         Optional<Budget> budgetOpt = budgetRepository.findById(id);

@@ -3,6 +3,7 @@ package JK.pfm.service;
 import JK.pfm.model.Account;
 import JK.pfm.repository.AccountRepository;
 import JK.pfm.util.AccountSpecifications;
+import JK.pfm.util.SecurityUtil;
 import JK.pfm.util.Validations;
 import jakarta.transaction.Transactional;
 import java.math.BigDecimal;
@@ -26,6 +27,7 @@ public class AccountService {
     
     //getting accounts for user
     public List<Account> getAccountsForUser(Long userId) {
+      
         return accountRepository.findAll(AccountSpecifications.belongsToUser(userId));
     }
 
@@ -34,11 +36,25 @@ public class AccountService {
         //validations
         Validations.emptyFieldValidation(account.getName(), "Name");
         Validations.numberCheck(account.getAmount(), "Amount");
+        Validations.negativeCheck(account.getAmount(), "Amount");
+        Validations.checkObj(account, "account");
+        Validations.checkObj(account.getUser(), "User");
+
+        if (accountRepository.findByUserIdAndName(account.getUser().getId(), account.getName()).isPresent()) {
+            throw new RuntimeException("Account with name " + account.getName() + " already exists.");
+        }
+
         return accountRepository.save(account);
     }
 
     //deleting account
     public void deleteAccount(Long id) {
+        Long userId = SecurityUtil.getUserId();
+        Account account = accountRepository.findById(id)
+        .orElseThrow(() -> new RuntimeException("Account not found!"));
+        if(!account.getUser().getId().equals(userId)){
+            throw new RuntimeException("Account not found!");
+        }
         accountRepository.deleteById(id);
     }
 
@@ -67,8 +83,11 @@ public class AccountService {
         if (accountOpt.isEmpty()) {
             throw new RuntimeException("Account not found!");
         }
-        
+        Long userId = SecurityUtil.getUserId();
         Account account = accountOpt.get();
+        if(!account.getUser().getId().equals(userId)){
+            throw new RuntimeException("Account not found!");
+        }
         account.setName(newName);
         return accountRepository.save(account);
     }

@@ -9,6 +9,7 @@ import JK.pfm.model.User;
 import JK.pfm.repository.CategoryRepository;
 import JK.pfm.repository.UserRepository;
 import JK.pfm.security.CustomUserDetails;
+import JK.pfm.util.SecurityUtil;
 import java.time.LocalDate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -39,9 +40,7 @@ public class BudgetController {
         @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate filterStart,
         @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate filterEnd) {
 
-    Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-    CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
-    Long userId = userDetails.getId();
+    Long userId = SecurityUtil.getUserId();
 
     List<Budget> budgets = budgetService.getAllBudgets(userId, filterStart, filterEnd);
     return ResponseEntity.ok(budgets);
@@ -50,20 +49,12 @@ public class BudgetController {
     //create budget
     @PostMapping
     public ResponseEntity<Budget> createBudget(@RequestBody BudgetCreationRequest request) {
-        // Retrieve authenticated user's username
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
-        
-        // Lookup the full user entity based on the username
-        Optional<User> userOpt = userRepository.findByUsername(userDetails.getUsername());
-        if (!userOpt.isPresent()) {
-            return ResponseEntity.badRequest().build();
-        }
-        User user = userOpt.get();
+
+        User user = SecurityUtil.getUser(userRepository);
         
         //get category
         Optional<Category> catOpt = categoryRepository.findByName(request.getCategoryName());
-        if (!userOpt.isPresent()) {
+        if (!catOpt.isPresent()) {
             return ResponseEntity.badRequest().build();
         }
         Category category = catOpt.get();
@@ -76,10 +67,7 @@ public class BudgetController {
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteBudget(@PathVariable Long id) {
-        // Get authenticated user's ID
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
-        Long userId = userDetails.getId();
+        Long userId = SecurityUtil.getUserId();
     
         // Try to delete the budget for this user
         boolean deleted = budgetService.deleteBudgetForUser(id, userId);
@@ -95,10 +83,7 @@ public class BudgetController {
     @PatchMapping("/{id}")
     public ResponseEntity<Budget> updateBudgetAmount(@PathVariable Long id, @RequestBody Map<String, BigDecimal> request) {
         BigDecimal newAmount = request.get("amount");
-        //update this later to more informative
-        if (newAmount == null) {
-            return ResponseEntity.badRequest().build();
-        }
+
         Budget updatedBudget = budgetService.updateBudgetAmount(id, newAmount);
         return ResponseEntity.ok(updatedBudget);
     }

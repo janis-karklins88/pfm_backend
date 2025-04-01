@@ -9,6 +9,7 @@ import JK.pfm.model.Account;
 import JK.pfm.model.Category;
 import JK.pfm.specifications.RecurringExpenseSpecifications;
 import JK.pfm.specifications.TransactionSpecifications;
+import JK.pfm.util.SecurityUtil;
 import JK.pfm.util.Validations;
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -77,6 +78,82 @@ public class RecurringExpenseService {
         return recurringExpenseRepository.findById(id);
     }
     
+    //Update amount
+    public RecurringExpense updateRecurringExpenseAmount(Long id, BigDecimal amount){
+        Validations.numberCheck(amount, "Amount");
+        Validations.negativeCheck(amount, "Amount");
+        Long userId = SecurityUtil.getUserId();
+        
+        Optional<RecurringExpense> expOpt = recurringExpenseRepository.findById(id);
+        if(expOpt.isEmpty()){
+            throw new RuntimeException("Incorrect automatic payment!");
+        }
+        RecurringExpense recurringExpense = expOpt.get();
+        if (!recurringExpense.getAccount().getUser().getId().equals(userId)) {
+            throw new RuntimeException("Incorrect automatic payment!");
+        }
+        recurringExpense.setAmount(amount);
+        return recurringExpenseRepository.save(recurringExpense);
+    }
+    
+    //update date
+    public RecurringExpense updateRecurringExpenseNextDueDate(Long id, LocalDate date){
+        Validations.checkDate(date);
+
+        Long userId = SecurityUtil.getUserId();
+        
+        Optional<RecurringExpense> expOpt = recurringExpenseRepository.findById(id);
+        if(expOpt.isEmpty()){
+            throw new RuntimeException("Incorrect automatic payment!");
+        }
+        RecurringExpense recurringExpense = expOpt.get();
+        if (!recurringExpense.getAccount().getUser().getId().equals(userId)) {
+            throw new RuntimeException("Incorrect automatic payment!");
+        }
+        recurringExpense.setNextDueDate(date);
+        return recurringExpenseRepository.save(recurringExpense);
+    }
+    
+    
+    //change account
+    public RecurringExpense updateRecurringExpenseAccount(Long id, String accountName){
+        Validations.emptyFieldValidation(accountName, "Account");
+        Long userId = SecurityUtil.getUserId();
+        Account account = accountRepository.findByUserIdAndName(userId, accountName).orElseThrow(() -> new RuntimeException("Incorrect account!"));
+        RecurringExpense expense = recurringExpenseRepository.findById(id).orElseThrow(() -> new RuntimeException("Incorrect payment!"));
+        
+        if (!expense.getAccount().getUser().getId().equals(userId)) {
+            throw new RuntimeException("Incorrect automatic payment!");
+        }
+        expense.setAccount(account);
+        return recurringExpenseRepository.save(expense);
+    }
+    
+    //pause/resume
+    @Transactional
+    public RecurringExpense pauseRecurringExpense(Long id, Long userId) {
+        RecurringExpense expense = recurringExpenseRepository.findById(id)
+            .orElseThrow(() -> new RuntimeException("Recurring expense not found!"));
+        if (!expense.getAccount().getUser().getId().equals(userId)) {
+            throw new RuntimeException("Not authorized to pause this expense");
+        }
+        expense.setActive(false);
+        return recurringExpenseRepository.save(expense);
+    }
+
+    @Transactional
+    public RecurringExpense resumeRecurringExpense(Long id, Long userId) {
+        RecurringExpense expense = recurringExpenseRepository.findById(id)
+            .orElseThrow(() -> new RuntimeException("Recurring expense not found!"));
+        if (!expense.getAccount().getUser().getId().equals(userId)) {
+            throw new RuntimeException("Not authorized to resume this expense");
+        }
+        expense.setActive(true);
+        expense.setNextDueDate(LocalDate.now());
+        return recurringExpenseRepository.save(expense);
+    }
+
+    
     // Delete a recurring expense by ID
     public boolean deleteRecurringExpense(Long id, Long userId) {
         Optional<RecurringExpense> recExpOpt = recurringExpenseRepository.findById(id);
@@ -129,7 +206,7 @@ public class RecurringExpenseService {
             transaction.setCategory(category);
             transaction.setType("Expense");
             transaction.setDate(LocalDate.now());
-            transaction.setDescription(frequency + "payment: " + name);
+            transaction.setDescription(frequency + " payment: " + name);
             transactionRepository.save(transaction);
             
             // Update account balance (check for sufficient funds if needed)

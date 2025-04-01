@@ -6,6 +6,7 @@ import JK.pfm.model.User;
 import JK.pfm.repository.UserRepository;
 import JK.pfm.security.CustomUserDetails;
 import JK.pfm.service.AccountService;
+import JK.pfm.util.SecurityUtil;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
@@ -29,9 +30,7 @@ public class AccountController {
     // Get all accounts for the authenticated user
     @GetMapping
     public ResponseEntity<List<Account>> getAccountsForUser() {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
-        Long userId = userDetails.getId();
+        Long userId = SecurityUtil.getUserId();
         List<Account> accounts = accountService.getAccountsForUser(userId);
         return ResponseEntity.ok(accounts);
     }
@@ -39,16 +38,7 @@ public class AccountController {
     // Create a new account for the authenticated user
     @PostMapping
     public ResponseEntity<Account> createAccount(@RequestBody AccountCreationRequest request) {
-        // Retrieve authenticated user's username
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
-        
-        // Lookup the full user entity based on the username
-        Optional<User> userOpt = userRepository.findByUsername(userDetails.getUsername());
-        if (!userOpt.isPresent()) {
-            return ResponseEntity.badRequest().build();
-        }
-        User user = userOpt.get();
+        User user = SecurityUtil.getUser(userRepository);
         
         // Create a new account associated with the authenticated user
         Account account = new Account(request.getName(), request.getAmount(), user);
@@ -74,9 +64,8 @@ public class AccountController {
     // Get total balance for the authenticated user
     @GetMapping("/balance")
     public ResponseEntity<BigDecimal> getTotalBalance() {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
-        BigDecimal balance = accountService.getTotalBalance(userDetails.getId());
+        Long userId = SecurityUtil.getUserId();
+        BigDecimal balance = accountService.getTotalBalance(userId);
         return ResponseEntity.ok(balance);
     }
 }

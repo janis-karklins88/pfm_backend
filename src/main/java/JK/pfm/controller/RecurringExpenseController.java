@@ -2,6 +2,7 @@ package JK.pfm.controller;
 
 import JK.pfm.dto.RecurringExpenseCreation;
 import JK.pfm.model.Account;
+import JK.pfm.model.Budget;
 import JK.pfm.model.Category;
 import JK.pfm.model.RecurringExpense;
 import JK.pfm.model.Transaction;
@@ -11,6 +12,8 @@ import JK.pfm.repository.CategoryRepository;
 
 import JK.pfm.security.CustomUserDetails;
 import JK.pfm.service.RecurringExpenseService;
+import JK.pfm.util.SecurityUtil;
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,6 +21,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
@@ -44,10 +48,7 @@ public class RecurringExpenseController {
             @RequestParam(required = false) Long categoryId,
             @RequestParam(required = false) Long accountId) {
         
-        // Retrieve user id from authentication
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
-        Long userId = userDetails.getId();
+        Long userId = SecurityUtil.getUserId();
         
         List<RecurringExpense> expenses = recurringExpenseService.getRecurringExpensesByFilters(startDate, endDate, categoryId, accountId, userId);
         if (expenses == null) {
@@ -60,10 +61,7 @@ public class RecurringExpenseController {
     @PostMapping
     public ResponseEntity<RecurringExpense> createRecurringExpense(@RequestBody RecurringExpenseCreation request) {
         
-        //get user id
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
-        Long userId = userDetails.getId();
+        Long userId = SecurityUtil.getUserId();
        
         //Lookup account
         Optional<Account> accOpt = accountRepository.findByUserIdAndName(userId, request.getAccountName());
@@ -96,15 +94,65 @@ public class RecurringExpenseController {
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteRecurringExpense(@PathVariable Long id) {
         // Get authenticated user's ID
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
-        Long userId = userDetails.getId();
+        Long userId = SecurityUtil.getUserId();
     
-        // Try to delete the budget for this user
         boolean deleted = recurringExpenseService.deleteRecurringExpense(id, userId);
         if (!deleted) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
         return ResponseEntity.noContent().build();
+    }
+    
+    //edit amount
+    @PatchMapping("/amount/{id}")
+    public ResponseEntity<RecurringExpense> updateRecurringExpenseAmount(@PathVariable Long id, @RequestBody Map<String, BigDecimal> request) {
+        BigDecimal newAmount = request.get("amount");
+        //update this later to more informative
+        if (newAmount == null) {
+            return ResponseEntity.badRequest().build();
+        }
+        RecurringExpense recurringExpense = recurringExpenseService.updateRecurringExpenseAmount(id, newAmount);
+        return ResponseEntity.ok(recurringExpense);
+    }
+    
+    //edit nextduedate
+    @PatchMapping("/name/{id}")
+    public ResponseEntity<RecurringExpense> updateRecurringExpenseNextDueDate(@PathVariable Long id, @RequestBody Map<String, LocalDate> request) {
+        LocalDate date = request.get("date");
+        //update this later to more informative
+        if (date == null) {
+            return ResponseEntity.badRequest().build();
+        }
+        RecurringExpense recurringExpense = recurringExpenseService.updateRecurringExpenseNextDueDate(id, date);
+        return ResponseEntity.ok(recurringExpense);
+    }
+    
+    //change account
+    @PatchMapping("/account/{id}")
+    public ResponseEntity<RecurringExpense> updateRecurringExpenseAccount(@PathVariable Long id, @RequestBody Map<String, String> request) {
+        String accountName = request.get("accountName");
+        //update this later to more informative
+        if (accountName == null) {
+            return ResponseEntity.badRequest().build();
+        }
+        RecurringExpense recurringExpense = recurringExpenseService.updateRecurringExpenseAccount(id, accountName);
+        return ResponseEntity.ok(recurringExpense);
+    }
+    
+    //pause/resume
+    // Pause a recurring expense
+    @PatchMapping("/{id}/pause")
+    public ResponseEntity<RecurringExpense> pauseRecurringExpense(@PathVariable Long id) {
+        Long userId = SecurityUtil.getUserId();
+        RecurringExpense updatedExpense = recurringExpenseService.pauseRecurringExpense(id, userId);
+        return ResponseEntity.ok(updatedExpense);
+    }
+
+    // Resume a recurring expense
+    @PatchMapping("/{id}/resume")
+    public ResponseEntity<RecurringExpense> resumeRecurringExpense(@PathVariable Long id) {
+        Long userId = SecurityUtil.getUserId();
+        RecurringExpense updatedExpense = recurringExpenseService.resumeRecurringExpense(id, userId);
+        return ResponseEntity.ok(updatedExpense);
     }
 }

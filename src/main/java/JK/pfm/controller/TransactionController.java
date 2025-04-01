@@ -9,6 +9,7 @@ import JK.pfm.repository.AccountRepository;
 import JK.pfm.repository.CategoryRepository;
 import JK.pfm.security.CustomUserDetails;
 import JK.pfm.service.TransactionService;
+import JK.pfm.util.SecurityUtil;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
@@ -40,9 +41,7 @@ public class TransactionController {
     @PostMapping
     public ResponseEntity<Transaction> createTransaction(@RequestBody TransactionCreationRequest request) {
         // Retrieve the authenticated user details
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
-        Long userId = userDetails.getId();
+        Long userId = SecurityUtil.getUserId();
         
         // Lookup category
         Optional<Category> catOpt = categoryRepository.findByName(request.getCategoryName());
@@ -51,7 +50,7 @@ public class TransactionController {
         }
         Category category = catOpt.get();
         
-        // Lookup account belonging to the authenticated user (account name must be unique per user)
+        // Lookup account belonging to the authenticated user 
         Optional<Account> accOpt = accountRepository.findByUserIdAndName(userId, request.getAccountName());
         if (accOpt.isEmpty()){
             throw new RuntimeException("Incorrect account!");
@@ -81,11 +80,7 @@ public class TransactionController {
     // Delete transaction
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteTransaction(@PathVariable Long id) {
-        // Get authenticated user's ID
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
-        Long userId = userDetails.getId();
-    
+        Long userId = SecurityUtil.getUserId();    
         // Try to delete the transaction for this user
         boolean deleted = transactionService.deleteTransaction(id, userId);
         if (!deleted) {

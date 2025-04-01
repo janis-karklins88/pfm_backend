@@ -23,6 +23,8 @@ public class RecurringExpense {
     
     private LocalDate nextDueDate;
     
+    private Boolean active;
+    
     
     @ManyToOne
     private Account account;
@@ -42,11 +44,20 @@ public class RecurringExpense {
         this.account = account;
         this.category = category;
         this.nextDueDate = startDate;
+        this.active = true;
     }
 
     // Getters and setters
     public Long getId() {
         return id;
+    }
+    
+    public Boolean getActive(){
+        return active;
+    }
+    
+    public void setActive(Boolean active){
+        this.active = active;
     }
 
     public String getName() {

@@ -77,8 +77,7 @@ public class TransactionService {
         }
         Transaction transaction = transactionOpt.get();
         if (!transaction.getAccount().getUser().getId().equals(userId)) {
-            // If not, return false (or throw an exception)
-            return false;
+            throw new RuntimeException("Transaction not found!");
         }
         
         //fund handling
