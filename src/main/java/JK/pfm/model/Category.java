@@ -14,15 +14,16 @@ public class Category {
     
     private String name;
     
-    private Boolean active;
+    @Column(name = "is_default", nullable = false)
+    private Boolean isDefault;
     
     // Constructors
     public Category() {
-        this.active = true;
+        this.isDefault = true;
     }
 
     public Category(String name) {
-        this.active = true;
+        this.isDefault = false;
         this.name = name;
     }
     
@@ -40,11 +41,11 @@ public class Category {
     }
     
    
-    public void setActive(Boolean set){
-       this.active = set;
+    public void setIsDefault(Boolean set){
+       this.isDefault = set;
     }
     
-    public Boolean getActive(){
-        return active;
+    public Boolean getIsDefault(){
+        return isDefault;
     }
 }

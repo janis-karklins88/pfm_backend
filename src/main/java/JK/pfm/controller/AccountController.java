@@ -4,17 +4,13 @@ import JK.pfm.dto.AccountCreationRequest;
 import JK.pfm.model.Account;
 import JK.pfm.model.User;
 import JK.pfm.repository.UserRepository;
-import JK.pfm.security.CustomUserDetails;
 import JK.pfm.service.AccountService;
 import JK.pfm.util.SecurityUtil;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 @RestController

@@ -1,5 +1,7 @@
 package JK.pfm.model;
 import jakarta.persistence.*;
+import java.util.HashSet;
+import java.util.Set;
 import javax.validation.constraints.NotNull;
 
 
@@ -20,11 +22,17 @@ public class User {
     @NotNull
     private String password;
     
+    // A user can have many category preferences
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    private Set<UserCategoryPreference> categoryPreferences = new HashSet<>();
+    
+    
+    
     //Constructor
     public User() {
     }
     
-    public User(String username, String password){
+    public User(String username, String password, UserCategoryPreference pref){
         this.username = username;
         this.password = password;
     }
@@ -36,6 +44,14 @@ public class User {
 
     public void setId(Long id) {
         this.id = id;
+    }
+    
+    public Set<UserCategoryPreference> getCategoryPreferences() {
+        return categoryPreferences;
+    }
+    
+    public void setCategoryPreferences(Set<UserCategoryPreference> categoryPreferences) {
+        this.categoryPreferences = categoryPreferences;
     }
 
     public String getUsername() {
@@ -52,6 +68,16 @@ public class User {
 
     public void setPassword(String password) {
         this.password = password;
+    }
+    
+    public void addCategoryPreference(UserCategoryPreference preference) {
+        categoryPreferences.add(preference);
+        preference.setUser(this);
+    }
+    
+    public void removeCategoryPreference(UserCategoryPreference preference) {
+        categoryPreferences.remove(preference);
+        preference.setUser(null);
     }
     
 }
