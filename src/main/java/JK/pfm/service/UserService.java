@@ -9,6 +9,7 @@ import JK.pfm.util.Validations;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import JK.pfm.repository.UserRepository;
+import JK.pfm.util.JWTUtil;
 import java.util.List;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
@@ -49,9 +50,18 @@ public class UserService {
 }
 
 
-    public Optional<User> getUserByUsername(String username) {
-        return userRepository.findByUsername(username);
+    public String login(String username, String password) {
+   
+    User foundUser = userRepository.findByUsername(username)
+    .orElseThrow(() -> new RuntimeException("Incorrect username!"));
+    
+    // Validate the password using the injected passwordEncoder
+    if (!passwordEncoder.matches(password, foundUser.getPassword())) {
+        throw new RuntimeException("Invalid password");
     }
+    // Generate the JWT token
+    return JWTUtil.generateToken(username);
+}
     
     
     
