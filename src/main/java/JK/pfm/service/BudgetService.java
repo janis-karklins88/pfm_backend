@@ -3,7 +3,6 @@ package JK.pfm.service;
 import JK.pfm.model.Budget;
 import JK.pfm.model.Category;
 import JK.pfm.repository.BudgetRepository;
-import JK.pfm.security.CustomUserDetails;
 import JK.pfm.specifications.BudgetSpecifications;
 import JK.pfm.util.SecurityUtil;
 import JK.pfm.util.Validations;
@@ -12,12 +11,10 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.jpa.domain.Specification;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
+
 
 @Service
 public class BudgetService {
@@ -43,7 +40,7 @@ public class BudgetService {
         Validations.checkDate(budget.getStartDate());
         Validations.checkDate(budget.getEndDate());
         Validations.numberCheck(budget.getAmount(), "amount");
-        Validations.checkObj(budget.getCategory(), "class");
+        Validations.checkObj(budget.getCategory(), "category");
         Validations.checkObj(budget.getUser(), "user");
         return budgetRepository.save(budget);
     }
@@ -83,11 +80,8 @@ public class BudgetService {
         Long userId = SecurityUtil.getUserId();
         
         //get budget
-        Optional<Budget> budgetOpt = budgetRepository.findById(id);
-        if (budgetOpt.isEmpty()) {
-            throw new RuntimeException("Budget not found!");
-        }
-        Budget budget = budgetOpt.get();
+        Budget budget = budgetRepository.findById(id)
+        .orElseThrow(() -> new RuntimeException("Budget not found!"));
         
         if (!budget.getUser().getId().equals(userId)) {
             throw new RuntimeException("Budget not found!");
@@ -107,9 +101,7 @@ public class BudgetService {
         Budget budget = budgetOpt.get(); 
         
         //check ownership
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
-        Long userId = userDetails.getId();
+        Long userId = SecurityUtil.getUserId();
         if (!budget.getUser().getId().equals(userId)) {
             throw new RuntimeException("Budget not found!");
         }

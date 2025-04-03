@@ -8,19 +8,19 @@ import java.time.LocalDate;
 public class RecurringExpenseCreation {
     private LocalDate startDate;
     private BigDecimal amount;
-    private String categoryName;
+    private Long categoryId;
     private String accountName;
     private String name;
     private String frequency;
 
     
     // getters and setters
-    public String getCategoryName() {
-        return categoryName;
+    public Long getCategoryId() {
+        return categoryId;
     }
 
-    public void setCategoryName(String name) {
-        this.categoryName = name;
+    public void setCategoryId(Long id) {
+        this.categoryId = id;
     }
     
     public String getAccountName() {

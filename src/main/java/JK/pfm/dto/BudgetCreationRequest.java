@@ -10,15 +10,15 @@ public class BudgetCreationRequest {
     private LocalDate startDate;
     private LocalDate endDate;
     private BigDecimal amount;
-    private String categoryName;
+    private Long categoryId;
     
     // getters and setters
-    public String getCategoryName() {
-        return categoryName;
+    public Long getCategoryId() {
+        return categoryId;
     }
 
-    public void setCategoryName(String name) {
-        this.categoryName = name;
+    public void setCategoryId(Long id) {
+        this.categoryId = id;
     }
     
     public BigDecimal getAmount(){

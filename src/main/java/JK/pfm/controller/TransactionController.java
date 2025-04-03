@@ -44,11 +44,9 @@ public class TransactionController {
         Long userId = SecurityUtil.getUserId();
         
         // Lookup category
-        Optional<Category> catOpt = categoryRepository.findByName(request.getCategoryName());
-        if (catOpt.isEmpty()){
-            throw new RuntimeException("Incorrect category!");
-        }
-        Category category = catOpt.get();
+        Category category = categoryRepository.findById(request.getCategoryId())
+        .orElseThrow(() -> new RuntimeException("Category not found!"));
+
         
         // Lookup account belonging to the authenticated user 
         Optional<Account> accOpt = accountRepository.findByUserIdAndName(userId, request.getAccountName());

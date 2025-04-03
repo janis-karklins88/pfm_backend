@@ -54,6 +54,7 @@ public class CategoryService {
         User user = SecurityUtil.getUser(userRepository);
         UserCategoryPreference pref = new UserCategoryPreference(user, category);
         user.addCategoryPreference(pref);       
+        userRepository.save(user);
         
         return category;
     }

@@ -2,15 +2,10 @@ package JK.pfm.controller;
 
 import JK.pfm.dto.RecurringExpenseCreation;
 import JK.pfm.model.Account;
-import JK.pfm.model.Budget;
 import JK.pfm.model.Category;
 import JK.pfm.model.RecurringExpense;
-import JK.pfm.model.Transaction;
-
 import JK.pfm.repository.AccountRepository;
 import JK.pfm.repository.CategoryRepository;
-
-import JK.pfm.security.CustomUserDetails;
 import JK.pfm.service.RecurringExpenseService;
 import JK.pfm.util.SecurityUtil;
 import java.math.BigDecimal;
@@ -25,8 +20,6 @@ import java.util.Map;
 import java.util.Optional;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 
 @RestController
 @RequestMapping("/api/recurring-expenses")
@@ -64,18 +57,13 @@ public class RecurringExpenseController {
         Long userId = SecurityUtil.getUserId();
        
         //Lookup account
-        Optional<Account> accOpt = accountRepository.findByUserIdAndName(userId, request.getAccountName());
-        if (accOpt.isEmpty()){
-            throw new RuntimeException("Incorrect account!");
-        }
-        Account account = accOpt.get();
+        Account account = accountRepository.findByUserIdAndName(userId, request.getAccountName())
+        .orElseThrow(() -> new RuntimeException("Account not found!"));
+        
 
         // Lookup category
-        Optional<Category> catOpt = categoryRepository.findByName(request.getCategoryName());
-        if (catOpt.isEmpty()){
-            throw new RuntimeException("Incorrect category!");
-        }
-        Category category = catOpt.get();
+        Category category = categoryRepository.findById(request.getCategoryId())
+        .orElseThrow(() -> new RuntimeException("Category not found!"));
         
         RecurringExpense expense = new RecurringExpense(request.getName(), request.getAmount(), request.getStartDate(), request.getFrequency(), account, category);
         RecurringExpense savedExpense = recurringExpenseService.saveRecurringExpense(expense);

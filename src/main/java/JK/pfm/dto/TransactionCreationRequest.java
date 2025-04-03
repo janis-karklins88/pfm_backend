@@ -8,18 +8,18 @@ import java.time.LocalDate;
 public class TransactionCreationRequest {
     private LocalDate date;
     private BigDecimal amount;
-    private String categoryName;
+    private Long categoryId;
     private String accountName;
     private String type;
     private String description;
     
     // getters and setters
-    public String getCategoryName() {
-        return categoryName;
+    public Long getCategoryId() {
+        return categoryId;
     }
 
-    public void setCategoryName(String name) {
-        this.categoryName = name;
+    public void setCategoryId(Long id) {
+        this.categoryId = id;
     }
     
     public BigDecimal getAmount(){

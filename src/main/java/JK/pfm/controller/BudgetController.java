@@ -8,20 +8,16 @@ import JK.pfm.model.Category;
 import JK.pfm.model.User;
 import JK.pfm.repository.CategoryRepository;
 import JK.pfm.repository.UserRepository;
-import JK.pfm.security.CustomUserDetails;
 import JK.pfm.util.SecurityUtil;
 import java.time.LocalDate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
+
 
 @RestController
 @RequestMapping("/api/budgets")
@@ -53,11 +49,8 @@ public class BudgetController {
         User user = SecurityUtil.getUser(userRepository);
         
         //get category
-        Optional<Category> catOpt = categoryRepository.findByName(request.getCategoryName());
-        if (!catOpt.isPresent()) {
-            return ResponseEntity.badRequest().build();
-        }
-        Category category = catOpt.get();
+        Category category = categoryRepository.findById(request.getCategoryId())
+        .orElseThrow(() -> new RuntimeException("Category not found!"));
         
         Budget budget = new Budget(request.getAmount(), request.getStartDate(), request.getEndDate(), category, user);
         
