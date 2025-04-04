@@ -14,10 +14,11 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long>,
     List<Transaction> findByCategoryId(Long categoryId);
     
     //query for suming total expense/income over time
-    @Query("SELECT COALESCE(SUM(t.amount), 0) FROM Transaction t WHERE t.type = :type AND t.date BETWEEN :start AND :end")
+    @Query("SELECT COALESCE(SUM(t.amount), 0) FROM Transaction t WHERE t.type = :type AND t.account.id IN :accountIds AND t.date BETWEEN :start AND :end")
     BigDecimal sumByTypeAndDate(@Param("type") String type, 
-                                @Param("start") LocalDate start, 
-                                @Param("end") LocalDate end);
+                            @Param("accountIds") List<Long> accountIds, 
+                            @Param("start") LocalDate start, 
+                            @Param("end") LocalDate end);
     
     //query for getting expenses by category breakdown
     @Query("SELECT t.category, COALESCE(SUM(t.amount), 0) FROM Transaction t " +

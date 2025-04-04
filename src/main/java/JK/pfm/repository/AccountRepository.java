@@ -5,6 +5,7 @@ package JK.pfm.repository;
 
 import JK.pfm.model.Account;
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
@@ -18,6 +19,8 @@ public interface AccountRepository extends JpaRepository<Account, Long>, JpaSpec
     Optional<Account> findByName(String name);
     
     Optional<Account> findByUserIdAndName(Long userId, String name);
+    
+    List<Account> findByUserId(Long userId);
     
     
 

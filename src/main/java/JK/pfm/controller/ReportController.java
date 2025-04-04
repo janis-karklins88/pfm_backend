@@ -34,14 +34,21 @@ public class ReportController {
     
     //getting total spending and expenses
     public ResponseEntity<Map<String, BigDecimal>> getSpendingAndIncomeSummary(
-            @RequestParam("start") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate start,
-            @RequestParam("end") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate end) {
-        
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate start,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate end) {
+
+        // Option: If dates are missing, set a wide default range
+        if (start == null) {
+            start = LocalDate.of(1900, 1, 1);
+        }
+        if (end == null) {
+            end = LocalDate.now();
+        }
         Map<String, BigDecimal> summary = reportService.getSpendingAndIncomeSummary(start, end);
         return ResponseEntity.ok(summary);
     }
     
-    //getting net savings
+    /*/getting net savings
     @GetMapping("/netsavings")
      public ResponseEntity<BigDecimal> calculateNetSavings(
             @RequestParam("start") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate start,
@@ -49,7 +56,7 @@ public class ReportController {
         BigDecimal netSavings = reportService.calculateNetSavings(start, end);
         return ResponseEntity.ok(netSavings);
     }
-    
+    */
     //getting expenses breakdown by category
     @GetMapping("/spending-by-category")
     public ResponseEntity<Map<String, BigDecimal>> getSpendingByCategory(

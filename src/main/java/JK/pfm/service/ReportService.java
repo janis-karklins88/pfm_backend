@@ -3,10 +3,13 @@ package JK.pfm.service;
 import JK.pfm.dto.BudgetVsActualDTO;
 import JK.pfm.dto.CashFlowDTO;
 import JK.pfm.dto.DailyTrend;
+import JK.pfm.model.Account;
 import JK.pfm.model.Budget;
 import JK.pfm.model.Category;
+import JK.pfm.repository.AccountRepository;
 import JK.pfm.repository.BudgetRepository;
 import JK.pfm.repository.TransactionRepository;
+import JK.pfm.util.SecurityUtil;
 import JK.pfm.util.Validations;
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -17,6 +20,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 
@@ -25,6 +29,8 @@ public class ReportService {
 
     private final TransactionRepository transactionRepository;
     private final BudgetRepository budgetRepository;
+    @Autowired
+    private AccountRepository accountRepository;
 
     public ReportService(TransactionRepository transactionRepository, BudgetRepository budgetRepository) {
         this.transactionRepository = transactionRepository;
@@ -35,16 +41,24 @@ public class ReportService {
     public Map<String, BigDecimal> getSpendingAndIncomeSummary(LocalDate start, LocalDate end) {
         Validations.checkDate(start);
         Validations.checkDate(end);
+        //get user accounts
+        Long userId = SecurityUtil.getUserId();        
+        List<Account> accounts = accountRepository.findByUserId(userId);
+        List<Long> accountIds = new ArrayList<>();
+        for(Account account : accounts){
+            Long id = account.getId();
+            accountIds.add(id);
+        }
         
-        BigDecimal totalSpending = transactionRepository.sumByTypeAndDate("Expense", start, end);
-        BigDecimal totalIncome = transactionRepository.sumByTypeAndDate("Income", start, end);
+        BigDecimal totalSpending = transactionRepository.sumByTypeAndDate("Expense", accountIds, start, end);
+        BigDecimal totalIncome = transactionRepository.sumByTypeAndDate("Deposit", accountIds, start, end);
 
         Map<String, BigDecimal> summary = new HashMap<>();
         summary.put("totalSpending", totalSpending);
         summary.put("totalIncome", totalIncome);
         return summary;
     }
-    
+    /*Upadate later
     //net savings calculation
     public BigDecimal calculateNetSavings(LocalDate start, LocalDate end){
         Validations.checkDate(start);
@@ -54,6 +68,7 @@ public class ReportService {
         BigDecimal totalIncome = transactionRepository.sumByTypeAndDate("Income", start, end);
         return totalIncome.subtract(totalSpending);
     }
+*/
     
     //expenses breaked down by category
     public Map<String, BigDecimal> getSpendingByCategory(LocalDate start, LocalDate end) {
