@@ -93,14 +93,13 @@ public class TransactionController {
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
             @RequestParam(required = false) Long categoryId,
-            @RequestParam(required = false) Long accountId) {
+            @RequestParam(required = false) Long accountId,
+            @RequestParam(required = false) String type) {
         
         // Retrieve user id from authentication
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
-        Long userId = userDetails.getId();
+        Long userId = SecurityUtil.getUserId();
         
-        List<Transaction> transactions = transactionService.getTransactionsByFilters(startDate, endDate, categoryId, accountId, userId);
+        List<Transaction> transactions = transactionService.getTransactionsByFilters(startDate, endDate, categoryId, accountId, userId, type);
         if (transactions == null) {
             transactions = new ArrayList<>();
         }
@@ -113,6 +112,7 @@ public class TransactionController {
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
             @RequestParam(required = false) Long categoryId,
+            @RequestParam(required = false) String type,
             @RequestParam(required = false) Long accountId) {
 
         // Retrieve authenticated user's ID
@@ -121,7 +121,7 @@ public class TransactionController {
         Long userId = userDetails.getId();
 
         List<UnifiedTransactionDTO> unifiedTransactions =
-                transactionService.getUnifiedTransactions(startDate, endDate, categoryId, accountId, userId);
+                transactionService.getUnifiedTransactions(startDate, endDate, categoryId, accountId, userId, type);
         if (unifiedTransactions == null) {
             unifiedTransactions = new ArrayList<>();
         }

@@ -16,6 +16,7 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import java.util.List;
 import java.util.Optional;
+import org.springframework.data.domain.Sort;
 
 @Service
 public class TransactionService {
@@ -96,7 +97,8 @@ public class TransactionService {
     }
     
     // Get transactions by filters including a filter for the authenticated user
-    public List<Transaction> getTransactionsByFilters(LocalDate startDate, LocalDate endDate, Long categoryId, Long accountId, Long userId) {
+    public List<Transaction> getTransactionsByFilters
+        (LocalDate startDate, LocalDate endDate, Long categoryId, Long accountId,  Long userId, String type) {
         Specification<Transaction> spec = Specification.where(null);
 
     // Build the specification using our reusable methods
@@ -115,18 +117,28 @@ public class TransactionService {
         if (accountId != null) {
             spec = spec.and(TransactionSpecifications.accountEquals(accountId));
         }
+        
+        if (type != null) {
+            spec = spec.and(TransactionSpecifications.typeEquals(type));
+        }
     
         // Always restrict transactions to the authenticated user
         spec = spec.and(TransactionSpecifications.belongsToUser(userId));
+        
+        //sorting in desc order
+        Sort sort = Sort.by(
+        Sort.Order.desc("date"), 
+        Sort.Order.desc("id") 
+        );
     
-        return transactionRepository.findAll(spec);
+        return transactionRepository.findAll(spec, sort);
 }
     
     //unified transaction list, not needed right now
     public List<UnifiedTransactionDTO> getUnifiedTransactions(LocalDate startDate, LocalDate endDate,
-                                                               Long categoryId, Long accountId, Long userId) {
+                                                               Long categoryId, Long accountId, Long userId, String type) {
         // Fetch transactions and recurring expenses using existing methods
-        List<Transaction> transactions = this.getTransactionsByFilters(startDate, endDate, categoryId, accountId, userId);
+        List<Transaction> transactions = this.getTransactionsByFilters(startDate, endDate, categoryId, accountId, userId, type);
         List<RecurringExpense> recurringExpenses = recurringExpenseService.getRecurringExpensesByFilters(startDate, endDate, categoryId, accountId, userId);
 
         List<UnifiedTransactionDTO> unifiedList = new ArrayList<>();

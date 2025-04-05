@@ -33,4 +33,9 @@ public class TransactionSpecifications {
     public static Specification<Transaction> belongsToUser(Long userId) {
         return (root, query, cb) -> cb.equal(root.get("account").get("user").get("id"), userId);
     }
+    
+    //filter by type
+    public static Specification<Transaction> typeEquals(String type){
+        return (root, query, cb) -> cb.equal(root.get("type"), type);
+    }
 }
