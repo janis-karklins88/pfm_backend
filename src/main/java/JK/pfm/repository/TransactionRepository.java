@@ -1,5 +1,6 @@
 package JK.pfm.repository;
 
+import JK.pfm.dto.ExpenseByCategoryDTO;
 import JK.pfm.model.Transaction;
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -13,6 +14,9 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long>,
     
     List<Transaction> findByCategoryId(Long categoryId);
     
+    List<Transaction> findTop7ByAccountIdInOrderByIdDesc(List<Long> accountIds);
+
+    
     //query for suming total expense/income over time
     @Query("SELECT COALESCE(SUM(t.amount), 0) FROM Transaction t WHERE t.type = :type AND t.account.id IN :accountIds AND t.date BETWEEN :start AND :end")
     BigDecimal sumByTypeAndDate(@Param("type") String type, 
@@ -21,10 +25,16 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long>,
                             @Param("end") LocalDate end);
     
     //query for getting expenses by category breakdown
-    @Query("SELECT t.category, COALESCE(SUM(t.amount), 0) FROM Transaction t " +
-           "WHERE t.type = 'Expense' AND t.date BETWEEN :start AND :end GROUP BY t.category")
-    List<Object[]> sumExpensesByCategory(@Param("start") LocalDate start,
-                                         @Param("end") LocalDate end);
+    @Query("SELECT new JK.pfm.dto.ExpenseByCategoryDTO(t.category.name, COALESCE(SUM(t.amount), 0)) " +
+       "FROM Transaction t " +
+       "WHERE t.type = 'Expense' " +
+       "AND t.account.id IN :accountIds " +
+       "AND t.date BETWEEN :start AND :end " +
+       "GROUP BY t.category.name")
+    List<ExpenseByCategoryDTO> findExpensesByCategory(@Param("accountIds") List<Long> accountIds,
+                                      @Param("start") LocalDate start,
+                                      @Param("end") LocalDate end);
+
     
     //query for grouping transaction by date and type over time, for making trends
     @Query("SELECT t.date, t.type, COALESCE(SUM(t.amount), 0) " +

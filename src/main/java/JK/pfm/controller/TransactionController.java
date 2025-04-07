@@ -107,24 +107,10 @@ public class TransactionController {
     }
     
     //Unified transaction list
-    @GetMapping("/all")
-    public ResponseEntity<List<UnifiedTransactionDTO>> getUnifiedTransactions(
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
-            @RequestParam(required = false) Long categoryId,
-            @RequestParam(required = false) String type,
-            @RequestParam(required = false) Long accountId) {
+    @GetMapping("/recent")
+    public ResponseEntity<List<Transaction>> getRecentTransactions() {
+        List<Transaction> transactions = transactionService.getRecentTransactions();
+        return ResponseEntity.ok(transactions);  
 
-        // Retrieve authenticated user's ID
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
-        Long userId = userDetails.getId();
-
-        List<UnifiedTransactionDTO> unifiedTransactions =
-                transactionService.getUnifiedTransactions(startDate, endDate, categoryId, accountId, userId, type);
-        if (unifiedTransactions == null) {
-            unifiedTransactions = new ArrayList<>();
-        }
-        return ResponseEntity.ok(unifiedTransactions);
     }
 }

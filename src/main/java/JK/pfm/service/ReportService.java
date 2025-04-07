@@ -3,6 +3,7 @@ package JK.pfm.service;
 import JK.pfm.dto.BudgetVsActualDTO;
 import JK.pfm.dto.CashFlowDTO;
 import JK.pfm.dto.DailyTrend;
+import JK.pfm.dto.ExpenseByCategoryDTO;
 import JK.pfm.model.Account;
 import JK.pfm.model.Budget;
 import JK.pfm.model.Category;
@@ -14,6 +15,7 @@ import JK.pfm.util.Validations;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -71,19 +73,21 @@ public class ReportService {
 */
     
     //expenses breaked down by category
-    public Map<String, BigDecimal> getSpendingByCategory(LocalDate start, LocalDate end) {
-        Validations.checkDate(start);
-        Validations.checkDate(end);
+    public List<ExpenseByCategoryDTO> getSpendingByCategory(LocalDate start, LocalDate end) {
         
-        List<Object[]> results = transactionRepository.sumExpensesByCategory(start, end);
-        Map<String, BigDecimal> breakdown = new HashMap<>();
-
-        for (Object[] result : results) {
-            String category = (String) result[0];
-            BigDecimal total = (BigDecimal) result[1];
-            breakdown.put(category, total);
+        Long userId = SecurityUtil.getUserId();
+        List<Account> accounts = accountRepository.findByUserId(userId);
+        List<Long> accountIds = new ArrayList<>();
+        for(Account acc : accounts){
+            Long id = acc.getId();
+            accountIds.add(id);
         }
-        return breakdown;
+        // If no accounts exist for the user, return an empty map
+        if (accountIds.isEmpty()) {
+            return Collections.emptyList();
+        }
+        
+        return transactionRepository.findExpensesByCategory(accountIds, start, end);
     }
     
     //getting daily trends, for now time unit is day, if trend is too granular, time unit should be increased
@@ -138,7 +142,7 @@ public class ReportService {
        return dailyCashFlow;
     }
     
-    //budget vs actual spending
+    /*/budget vs actual spending
     public List<BudgetVsActualDTO> getBudgetVsActual(LocalDate start, LocalDate end) {
         Validations.checkDate(start);
         Validations.checkDate(end);
@@ -175,6 +179,6 @@ public class ReportService {
         
         return report;
     }
-    
+    */
 }
 

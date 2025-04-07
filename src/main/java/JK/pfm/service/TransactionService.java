@@ -1,15 +1,16 @@
 package JK.pfm.service;
 
-import JK.pfm.dto.UnifiedTransactionDTO;
 import JK.pfm.model.Account;
-import JK.pfm.model.RecurringExpense;
 import JK.pfm.model.Transaction;
+import JK.pfm.repository.AccountRepository;
 import JK.pfm.repository.TransactionRepository;
 import JK.pfm.specifications.TransactionSpecifications;
+import JK.pfm.util.SecurityUtil;
 import JK.pfm.util.Validations;
 import jakarta.transaction.Transactional;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.jpa.domain.Specification;
@@ -25,7 +26,7 @@ public class TransactionService {
     private TransactionRepository transactionRepository;
     
     @Autowired 
-    private RecurringExpenseService recurringExpenseService;
+    private AccountRepository accountRepository;
     
     
     // Save a new transaction with validations and account balance updates
@@ -134,51 +135,21 @@ public class TransactionService {
         return transactionRepository.findAll(spec, sort);
 }
     
-    //unified transaction list, not needed right now
-    public List<UnifiedTransactionDTO> getUnifiedTransactions(LocalDate startDate, LocalDate endDate,
-                                                               Long categoryId, Long accountId, Long userId, String type) {
-        // Fetch transactions and recurring expenses using existing methods
-        List<Transaction> transactions = this.getTransactionsByFilters(startDate, endDate, categoryId, accountId, userId, type);
-        List<RecurringExpense> recurringExpenses = recurringExpenseService.getRecurringExpensesByFilters(startDate, endDate, categoryId, accountId, userId);
-
-        List<UnifiedTransactionDTO> unifiedList = new ArrayList<>();
-
-        // Map Transactions to UnifiedTransactionDTO
-        for (Transaction txn : transactions) {
-            UnifiedTransactionDTO dto = new UnifiedTransactionDTO();
-            dto.setId(txn.getId());
-            dto.setDate(txn.getDate());  // assuming "date" is the execution date for one-off transactions
-            dto.setAmount(txn.getAmount());
-            dto.setCategoryName(txn.getCategory() != null ? txn.getCategory().getName() : null);
-            dto.setAccountName(txn.getAccount() != null ? txn.getAccount().getName() : null);
-            dto.setType(txn.getType()); // "Deposit" or "Expense"
-            dto.setDescription(txn.getDescription());
-            // frequency not applicable for one-off transactions
-            unifiedList.add(dto);
+    //get recent transactions
+    public List<Transaction> getRecentTransactions() {
+        Long userId = SecurityUtil.getUserId();
+        
+        List<Account> accounts = accountRepository.findByUserId(userId);
+        List<Long> accountIds = new ArrayList<>();
+        for(Account acc : accounts){
+            Long id = acc.getId();
+            accountIds.add(id);
         }
-
-        // Map RecurringExpenses to UnifiedTransactionDTO
-        for (RecurringExpense recExp : recurringExpenses) {
-            UnifiedTransactionDTO dto = new UnifiedTransactionDTO();
-            dto.setId(recExp.getId());
-            // For recurring expenses, choose a representative date.
-            // You might use the nextDueDate if available; otherwise, use startDate.
-            dto.setDate(recExp.getNextDueDate() != null ? recExp.getNextDueDate() : recExp.getStartDate());
-            dto.setAmount(recExp.getAmount());
-            dto.setCategoryName(recExp.getCategory() != null ? recExp.getCategory().getName() : null);
-            dto.setAccountName(recExp.getAccount() != null ? recExp.getAccount().getName() : null);
-            // Here we label it as "Recurring Expense"
-            dto.setType("Recurring Expense");
-            // You can include additional recurring-specific info, such as frequency:
-            dto.setFrequency(recExp.getFrequency());
-            // Optionally, set description if available
-            dto.setDescription(recExp.getName()); // or another field
-            unifiedList.add(dto);
+        if (accountIds.isEmpty()) {
+        return Collections.emptyList();
         }
-
-        // Sort the unified list by date (ascending order)
-        unifiedList.sort(Comparator.comparing(UnifiedTransactionDTO::getDate));
-
-        return unifiedList;
+        List<Transaction> transactions = transactionRepository.findTop7ByAccountIdInOrderByIdDesc(accountIds);
+        
+        return transactions;
     }
 }

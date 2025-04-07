@@ -4,7 +4,9 @@ package JK.pfm.controller;
 import JK.pfm.dto.BudgetVsActualDTO;
 import JK.pfm.dto.CashFlowDTO;
 import JK.pfm.dto.DailyTrend;
+import JK.pfm.dto.ExpenseByCategoryDTO;
 import JK.pfm.service.ReportService;
+import JK.pfm.util.SecurityUtil;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
@@ -16,10 +18,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-/**
- *
- * @author user
- */
+
 @RestController
 @RequestMapping("/api/reports")
 public class ReportController {
@@ -59,11 +58,11 @@ public class ReportController {
     */
     //getting expenses breakdown by category
     @GetMapping("/spending-by-category")
-    public ResponseEntity<Map<String, BigDecimal>> getSpendingByCategory(
+    public ResponseEntity<List<ExpenseByCategoryDTO>> getSpendingByCategory(
             @RequestParam("start") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate start,
             @RequestParam("end") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate end) {
         
-        Map<String, BigDecimal> breakdown = reportService.getSpendingByCategory(start, end);
+        List<ExpenseByCategoryDTO> breakdown = reportService.getSpendingByCategory(start, end);
         return ResponseEntity.ok(breakdown);
     }
     
@@ -86,7 +85,7 @@ public class ReportController {
         return ResponseEntity.ok(cashFlowList);
     }
     
-    //budget vs actual spenddings
+    /*/budget vs actual spenddings
     @GetMapping("/budget-vs-actual")
     public ResponseEntity<List<BudgetVsActualDTO>> getBudgetVsActual(
             @RequestParam("start") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate start,
@@ -95,6 +94,6 @@ public class ReportController {
         List<BudgetVsActualDTO> report = reportService.getBudgetVsActual(start, end);
         return ResponseEntity.ok(report);
     }
-    
+    */
 }
 
