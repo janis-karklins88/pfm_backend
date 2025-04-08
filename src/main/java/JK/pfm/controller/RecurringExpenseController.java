@@ -70,12 +70,12 @@ public class RecurringExpenseController {
         return ResponseEntity.ok(savedExpense);
     }
     
-    // Retrieve a recurring expense by ID
-    @GetMapping("/{id}")
-    public ResponseEntity<RecurringExpense> getRecurringExpenseById(@PathVariable Long id) {
-        return recurringExpenseService.getRecurringExpenseById(id)
-            .map(ResponseEntity::ok)
-            .orElse(ResponseEntity.notFound().build());
+        //next payments
+    @GetMapping("/next-payments")
+    public ResponseEntity<List<RecurringExpense>> getNextPayements() {
+        List<RecurringExpense> payments = recurringExpenseService.getUpcommingRecurringExpense();
+        return ResponseEntity.ok(payments);  
+
     }
     
     // Delete a recurring expense by ID

@@ -106,7 +106,7 @@ public class TransactionController {
         return ResponseEntity.ok(transactions);
     }
     
-    //Unified transaction list
+    //recent transaction list
     @GetMapping("/recent")
     public ResponseEntity<List<Transaction>> getRecentTransactions() {
         List<Transaction> transactions = transactionService.getRecentTransactions();

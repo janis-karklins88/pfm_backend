@@ -13,6 +13,8 @@ import JK.pfm.util.SecurityUtil;
 import JK.pfm.util.Validations;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.Collections;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -73,9 +75,21 @@ public class RecurringExpenseService {
         return recurringExpenseRepository.save(expense);
     }
     
-    // Get a recurring expense by its ID
-    public Optional<RecurringExpense> getRecurringExpenseById(Long id) {
-        return recurringExpenseRepository.findById(id);
+    // Get a next 3 payments
+    public List<RecurringExpense> getUpcommingRecurringExpense() {
+        Long userId = SecurityUtil.getUserId();
+        LocalDate todaysDate = LocalDate.now();
+        
+                List<Account> accounts = accountRepository.findByUserId(userId);
+        List<Long> accountIds = new ArrayList<>();
+        for(Account acc : accounts){
+            Long id = acc.getId();
+            accountIds.add(id);
+        }
+        if (accountIds.isEmpty()) {
+        return Collections.emptyList();
+        }
+        return recurringExpenseRepository.findTop5ByAccountIdInAndNextDueDateAfterOrderByNextDueDateAsc(accountIds, todaysDate);
     }
     
     //Update amount

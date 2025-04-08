@@ -11,8 +11,16 @@ import org.springframework.data.repository.query.Param;
 
 public interface BudgetRepository extends JpaRepository<Budget, Long>, JpaSpecificationExecutor<Budget> {
     //total spent on budget
-    @Query("SELECT COALESCE(SUM(t.amount), 0) FROM Transaction t WHERE t.category.id = :categoryId AND t.date BETWEEN :startDate AND :endDate")
-    BigDecimal getTotalSpentOnBudget(@Param("categoryId") Long categoryId, @Param("startDate") LocalDate startDate, @Param("endDate") LocalDate endDate);
+    @Query("SELECT COALESCE(SUM(t.amount), 0) FROM Transaction t " +
+       "WHERE t.category.id = :categoryId " +
+       "AND t.date BETWEEN :startDate AND :endDate " +
+       "AND t.account.id IN :accountIds")
+    BigDecimal getTotalSpentOnBudget(
+        @Param("categoryId") Long categoryId, 
+        @Param("startDate") LocalDate startDate, 
+        @Param("endDate") LocalDate endDate, 
+        @Param("accountIds") List<Long> accountIds);
+
     
     // Retrieve budgets by category, although method is already provided, using like this because of possible updates.
     @Query("SELECT b FROM Budget b")

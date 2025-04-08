@@ -148,7 +148,7 @@ public class TransactionService {
         if (accountIds.isEmpty()) {
         return Collections.emptyList();
         }
-        List<Transaction> transactions = transactionRepository.findTop7ByAccountIdInOrderByIdDesc(accountIds);
+        List<Transaction> transactions = transactionRepository.findTop5ByAccountIdInOrderByIdDesc(accountIds);
         
         return transactions;
     }

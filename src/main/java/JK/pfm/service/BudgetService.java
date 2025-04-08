@@ -1,7 +1,9 @@
 package JK.pfm.service;
 
+import JK.pfm.model.Account;
 import JK.pfm.model.Budget;
 import JK.pfm.model.Category;
+import JK.pfm.repository.AccountRepository;
 import JK.pfm.repository.BudgetRepository;
 import JK.pfm.specifications.BudgetSpecifications;
 import JK.pfm.util.SecurityUtil;
@@ -9,6 +11,7 @@ import JK.pfm.util.Validations;
 import jakarta.transaction.Transactional;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import java.util.List;
@@ -21,6 +24,8 @@ public class BudgetService {
 
     @Autowired
     private BudgetRepository budgetRepository;
+    @Autowired
+    private AccountRepository accountRepository;
     
     //getting all budgets for user
     public List<Budget> getAllBudgets(Long userId, LocalDate filterStart, LocalDate filterEnd) {
@@ -105,10 +110,16 @@ public class BudgetService {
         if (!budget.getUser().getId().equals(userId)) {
             throw new RuntimeException("Budget not found!");
         }
+        //get accounts for user
+        List<Account> accounts = accountRepository.findByUserId(userId);
+        List<Long> accountIds = new ArrayList<>();
+        for(Account account : accounts){
+            Long accId = account.getId();
+            accountIds.add(accId);
+        }
         
-          
         Category category = budget.getCategory();
-        return budgetRepository.getTotalSpentOnBudget(category.getId(), budget.getStartDate(), budget.getEndDate());
+        return budgetRepository.getTotalSpentOnBudget(category.getId(), budget.getStartDate(), budget.getEndDate(), accountIds);
     } 
     
 }

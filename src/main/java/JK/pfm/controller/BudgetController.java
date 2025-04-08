@@ -30,7 +30,7 @@ public class BudgetController {
     @Autowired
     private CategoryRepository categoryRepository;
     
-    //get Budget
+    //get Budgets
     @GetMapping
     public ResponseEntity<List<Budget>> getAllBudgets(
         @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate filterStart,

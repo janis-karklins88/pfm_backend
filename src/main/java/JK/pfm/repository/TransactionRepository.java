@@ -14,7 +14,7 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long>,
     
     List<Transaction> findByCategoryId(Long categoryId);
     
-    List<Transaction> findTop7ByAccountIdInOrderByIdDesc(List<Long> accountIds);
+    List<Transaction> findTop5ByAccountIdInOrderByIdDesc(List<Long> accountIds);
 
     
     //query for suming total expense/income over time
