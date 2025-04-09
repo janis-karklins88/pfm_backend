@@ -1,15 +1,14 @@
 package JK.pfm.controller;
 
 import JK.pfm.dto.TransactionCreationRequest;
-import JK.pfm.dto.UnifiedTransactionDTO;
 import JK.pfm.model.Account;
 import JK.pfm.model.Category;
 import JK.pfm.model.Transaction;
 import JK.pfm.repository.AccountRepository;
 import JK.pfm.repository.CategoryRepository;
-import JK.pfm.security.CustomUserDetails;
 import JK.pfm.service.TransactionService;
 import JK.pfm.util.SecurityUtil;
+import JK.pfm.util.Validations;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
@@ -18,8 +17,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -48,7 +45,8 @@ public class TransactionController {
         .orElseThrow(() -> new RuntimeException("Category not found!"));
 
         
-        // Lookup account belonging to the authenticated user 
+        // Lookup account belonging to the authenticated user
+        Validations.emptyFieldValidation(request.getAccountName(), "Account");
         Optional<Account> accOpt = accountRepository.findByUserIdAndName(userId, request.getAccountName());
         if (accOpt.isEmpty()){
             throw new RuntimeException("Incorrect account!");

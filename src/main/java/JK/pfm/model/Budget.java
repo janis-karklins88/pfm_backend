@@ -20,6 +20,8 @@ public class Budget {
     
     private LocalDate endDate;
     
+    private Boolean monthly = false;
+    
     
     @ManyToOne
     @JoinColumn(name = "category_id")
@@ -48,6 +50,14 @@ public class Budget {
 
     public BigDecimal getAmount() {
         return amount;
+    }
+    
+    public boolean getMonthly() {
+        return monthly;
+    }
+
+    public void setMonthly(Boolean monthly) {
+        this.monthly = monthly;
     }
 
     public void setAmount(BigDecimal amount) {

@@ -20,10 +20,6 @@ public class AccountService {
     private AccountRepository accountRepository;
     
 
-    //getting accounts
-    public List<Account> getAllAccounts() {
-        return accountRepository.findAll();
-    }
     
     //getting accounts for user
     public List<Account> getAccountsForUser(Long userId) {
@@ -58,15 +54,6 @@ public class AccountService {
         accountRepository.deleteById(id);
     }
 
-    //getting one account 
-    public Account getAccountById(Long id) {
-        Optional<Account> accOpt = accountRepository.findById(id);
-        if (accOpt.isEmpty()) {
-            throw new RuntimeException("Account not found!");
-        }
-        Account account = accOpt.get();
-        return account;
-    }
     
     //getting total balance
     public BigDecimal getTotalBalance(Long id){

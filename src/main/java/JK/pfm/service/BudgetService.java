@@ -3,20 +3,26 @@ package JK.pfm.service;
 import JK.pfm.model.Account;
 import JK.pfm.model.Budget;
 import JK.pfm.model.Category;
+import JK.pfm.model.User;
 import JK.pfm.repository.AccountRepository;
 import JK.pfm.repository.BudgetRepository;
+import JK.pfm.repository.UserRepository;
 import JK.pfm.specifications.BudgetSpecifications;
 import JK.pfm.util.SecurityUtil;
 import JK.pfm.util.Validations;
 import jakarta.transaction.Transactional;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.temporal.TemporalAdjusters;
 import java.util.ArrayList;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.http.HttpStatus;
+import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.web.server.ResponseStatusException;
 
 
 @Service
@@ -26,6 +32,8 @@ public class BudgetService {
     private BudgetRepository budgetRepository;
     @Autowired
     private AccountRepository accountRepository;
+    @Autowired
+    private UserRepository userRepository;
     
     //getting all budgets for user
     public List<Budget> getAllBudgets(Long userId, LocalDate filterStart, LocalDate filterEnd) {
@@ -121,5 +129,53 @@ public class BudgetService {
         Category category = budget.getCategory();
         return budgetRepository.getTotalSpentOnBudget(category.getId(), budget.getStartDate(), budget.getEndDate(), accountIds);
     } 
+    
+    //recreate budget for next month
+    @Scheduled(cron = "0 0 12 * * ?")
+    public void createNextMonthBudgets(){
+        User user = SecurityUtil.getUser(userRepository);
+        // Compute current month and next month date ranges.
+        LocalDate today = LocalDate.now();
+        LocalDate endOfCurrentMonth = today.with(TemporalAdjusters.lastDayOfMonth());
+        LocalDate startOfNextMonth = endOfCurrentMonth.plusDays(1);
+        LocalDate endOfNextMonth = startOfNextMonth.with(TemporalAdjusters.lastDayOfMonth());
+        
+        //get budgets
+        List<Budget> currentBudgets = budgetRepository.findByMonthlyTrueAndStartDateLessThanEqualAndEndDateGreaterThanEqual(
+            today, today
+        );
+        
+        //recreating budget
+        for (Budget currentBudget : currentBudgets) {
+            // Check if a budget for next month already exists for this user and this budget type.
+            boolean exists = budgetRepository.existsByUserAndCategoryAndStartDateAndMonthlyTrue(
+                currentBudget.getUser(),
+                currentBudget.getCategory(),
+                startOfNextMonth
+            );
+            if (!exists) {
+                // Create a new budget by copying relevant fields and setting the dates.
+                Budget nextMonthBudget = new Budget(currentBudget.getAmount(), startOfNextMonth, endOfNextMonth, currentBudget.getCategory(), user);
+                budgetRepository.save(nextMonthBudget);
+            }
+        }
+
+    }
+    
+    //set monthly active/inactive
+    public Budget updateMonthlyStatus(Long id, boolean active){
+        Long userId = SecurityUtil.getUserId();
+        
+        Budget budget = budgetRepository.findById(id)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Budget not found"));
+        
+        if (!budget.getUser().getId().equals(userId)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Budget not found");
+        }
+        
+        budget.setMonthly(active);
+        budgetRepository.save(budget);
+        return budget;
+    }
     
 }

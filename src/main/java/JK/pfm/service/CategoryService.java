@@ -40,18 +40,16 @@ public class CategoryService {
 
     //saving category
     public Category saveCategory(String name) {
-        
         Validations.emptyFieldValidation(name, "name");
         
-        Optional<Category> duplicateCategory = categoryRepository.findByName(name);
-        if(!duplicateCategory.isEmpty()){
-            throw new RuntimeException("Category already exists");
-        }
+        User user = SecurityUtil.getUser(userRepository);
+        if (userCategoryPreferenceRepository.existsByUserAndCategory_NameIgnoreCase(user, name)) {
+        throw new IllegalArgumentException("Category with this name already exists.");
+    }
         
         Category category = new Category(name);
         categoryRepository.save(category);
-        
-        User user = SecurityUtil.getUser(userRepository);
+
         UserCategoryPreference pref = new UserCategoryPreference(user, category);
         user.addCategoryPreference(pref);       
         userRepository.save(user);

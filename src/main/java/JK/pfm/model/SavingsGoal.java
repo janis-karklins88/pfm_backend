@@ -3,7 +3,7 @@ package JK.pfm.model;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import java.math.BigDecimal;
-import java.time.LocalDate;
+
 
 @Entity
 @Table(name = "savings_goals")

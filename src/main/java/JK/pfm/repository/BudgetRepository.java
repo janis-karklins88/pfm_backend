@@ -1,6 +1,8 @@
 package JK.pfm.repository;
 
 import JK.pfm.model.Budget;
+import JK.pfm.model.Category;
+import JK.pfm.model.User;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
@@ -25,6 +27,12 @@ public interface BudgetRepository extends JpaRepository<Budget, Long>, JpaSpecif
     // Retrieve budgets by category, although method is already provided, using like this because of possible updates.
     @Query("SELECT b FROM Budget b")
     List<Budget> findAllBudgets();
+    
+    //get current monthly budgets
+    List<Budget> findByMonthlyTrueAndStartDateLessThanEqualAndEndDateGreaterThanEqual(LocalDate date1, LocalDate date2);
+    
+    //check if budget exists for next month
+    boolean existsByUserAndCategoryAndStartDateAndMonthlyTrue(User user, Category category, LocalDate startDate);
     
 
 }

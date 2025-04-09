@@ -87,4 +87,12 @@ public class BudgetController {
         BigDecimal totalSpent = budgetService.getTotalSpentOnBudget(id);
         return ResponseEntity.ok(totalSpent);
     }
+    
+    //set monthly active/inactive
+    @PatchMapping("/{budgetId}/monthly")
+    public ResponseEntity<Budget> updateMonthlyStatus(@PathVariable Long budgetId, 
+                                                      @RequestParam boolean active) {
+        Budget budget = budgetService.updateMonthlyStatus(budgetId, active);
+        return ResponseEntity.ok(budget);
+    }
 }
