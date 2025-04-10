@@ -16,19 +16,25 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long>,
     
     List<Transaction> findTop5ByAccountIdInOrderByIdDesc(List<Long> accountIds);
 
-    
-    //query for suming total expense/income over time
-    @Query("SELECT COALESCE(SUM(t.amount), 0) FROM Transaction t WHERE t.type = :type AND t.account.id IN :accountIds AND t.date BETWEEN :start AND :end")
+    //total expense and income, ignoring transactions for savings
+    @Query("SELECT COALESCE(SUM(t.amount), 0) " +
+       "FROM Transaction t " +
+       "WHERE t.type = :type " +
+       "AND t.account.id IN :accountIds " +
+       "AND t.date BETWEEN :start AND :end " +
+       "AND t.description NOT IN ('Deposit to savings', 'Withdraw from savings')")
     BigDecimal sumByTypeAndDate(@Param("type") String type, 
                             @Param("accountIds") List<Long> accountIds, 
                             @Param("start") LocalDate start, 
                             @Param("end") LocalDate end);
+
     
     //query for getting expenses by category breakdown
     @Query("SELECT new JK.pfm.dto.ExpenseByCategoryDTO(t.category.name, COALESCE(SUM(t.amount), 0)) " +
        "FROM Transaction t " +
        "WHERE t.type = 'Expense' " +
        "AND t.account.id IN :accountIds " +
+       "AND t.category.name <> 'Savings'" +
        "AND t.date BETWEEN :start AND :end " +
        "GROUP BY t.category.name")
     List<ExpenseByCategoryDTO> findExpensesByCategory(@Param("accountIds") List<Long> accountIds,

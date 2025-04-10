@@ -1,6 +1,7 @@
 
 package JK.pfm.controller;
 
+import JK.pfm.dto.BalanceBreakdownDTO;
 import JK.pfm.dto.BudgetVsActualDTO;
 import JK.pfm.dto.CashFlowDTO;
 import JK.pfm.dto.DailyTrend;
@@ -47,15 +48,7 @@ public class ReportController {
         return ResponseEntity.ok(summary);
     }
     
-    /*/getting net savings
-    @GetMapping("/netsavings")
-     public ResponseEntity<BigDecimal> calculateNetSavings(
-            @RequestParam("start") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate start,
-            @RequestParam("end") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate end) {
-        BigDecimal netSavings = reportService.calculateNetSavings(start, end);
-        return ResponseEntity.ok(netSavings);
-    }
-    */
+
     //getting expenses breakdown by category
     @GetMapping("/spending-by-category")
     public ResponseEntity<List<ExpenseByCategoryDTO>> getSpendingByCategory(
@@ -64,6 +57,14 @@ public class ReportController {
         
         List<ExpenseByCategoryDTO> breakdown = reportService.getSpendingByCategory(start, end);
         return ResponseEntity.ok(breakdown);
+    }
+    
+    //get total user balance
+
+    @GetMapping("balance")
+    public ResponseEntity<BigDecimal> getTotalUserBalance() {
+        BigDecimal sum = reportService.getTotalUserBalance();
+        return ResponseEntity.ok(sum);
     }
     
     //get daily trend
@@ -76,24 +77,20 @@ public class ReportController {
         return ResponseEntity.ok(trends);
     }
     
-    //getting net cashflow
-    public ResponseEntity<List<CashFlowDTO>> getDailyCashFlow(
-            @RequestParam("start") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate start,
-            @RequestParam("end") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate end) {
-        
-        List<CashFlowDTO> cashFlowList = reportService.getDailyCashFlow(start, end);
+    //getting cashflow
+    @GetMapping("/monthly-cashflow")
+    public ResponseEntity<List<CashFlowDTO>> getMonthlyCashFlow() {
+            List<CashFlowDTO> cashFlowList = reportService.getMonthlyCashFlow();
         return ResponseEntity.ok(cashFlowList);
     }
     
-    /*/budget vs actual spenddings
-    @GetMapping("/budget-vs-actual")
-    public ResponseEntity<List<BudgetVsActualDTO>> getBudgetVsActual(
-            @RequestParam("start") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate start,
-            @RequestParam("end") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate end) {
-        
-        List<BudgetVsActualDTO> report = reportService.getBudgetVsActual(start, end);
-        return ResponseEntity.ok(report);
+    //get total balance breakdown
+    @GetMapping("/balance-breakdown")
+    public List<BalanceBreakdownDTO> getBalanceBreakdown(){
+        List<BalanceBreakdownDTO> breakdown = reportService.getBalanceBreakdown();
+        return breakdown;
     }
-    */
+    
+
 }
 

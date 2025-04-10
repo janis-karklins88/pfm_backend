@@ -117,8 +117,8 @@ public class RecurringExpenseController {
     
     //change account
     @PatchMapping("/account/{id}")
-    public ResponseEntity<RecurringExpense> updateRecurringExpenseAccount(@PathVariable Long id, @RequestBody Map<String, String> request) {
-        String accountName = request.get("accountName");
+    public ResponseEntity<RecurringExpense> updateRecurringExpenseAccount(@PathVariable Long id, @RequestBody Map<String, Long> request) {
+        Long accountName = request.get("accountName");
         //update this later to more informative
         if (accountName == null) {
             return ResponseEntity.badRequest().build();

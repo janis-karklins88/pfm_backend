@@ -56,8 +56,9 @@ public class AccountService {
 
     
     //getting total balance
-    public BigDecimal getTotalBalance(Long id){
-        return accountRepository.getTotalBalanceByUserId(id);
+    public BigDecimal getTotalBalance(){
+        Long userId = SecurityUtil.getUserId();
+        return accountRepository.getTotalBalanceByUserId(userId);
     }
     
     //updating account name

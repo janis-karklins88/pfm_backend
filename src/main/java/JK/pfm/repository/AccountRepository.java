@@ -20,6 +20,9 @@ public interface AccountRepository extends JpaRepository<Account, Long>, JpaSpec
     
     Optional<Account> findByUserIdAndName(Long userId, String name);
     
+    Optional<Account> findByUserIdAndId(Long userId, Long accountId);
+
+    
     List<Account> findByUserId(Long userId);
     
     

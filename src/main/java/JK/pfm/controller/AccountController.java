@@ -30,6 +30,13 @@ public class AccountController {
         List<Account> accounts = accountService.getAccountsForUser(userId);
         return ResponseEntity.ok(accounts);
     }
+    
+    // Get total account balance for user
+    @GetMapping("accounts-balance")
+    public ResponseEntity<BigDecimal> getTotalBalance() {
+        BigDecimal sum = accountService.getTotalBalance();
+        return ResponseEntity.ok(sum);
+    }
 
     // Create a new account for the authenticated user
     @PostMapping
@@ -57,11 +64,5 @@ public class AccountController {
         return ResponseEntity.ok(updatedAccount);
     }
     
-    // Get total balance for the authenticated user
-    @GetMapping("/balance")
-    public ResponseEntity<BigDecimal> getTotalBalance() {
-        Long userId = SecurityUtil.getUserId();
-        BigDecimal balance = accountService.getTotalBalance(userId);
-        return ResponseEntity.ok(balance);
-    }
+
 }

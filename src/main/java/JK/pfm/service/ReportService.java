@@ -1,15 +1,13 @@
 package JK.pfm.service;
 
-import JK.pfm.dto.BudgetVsActualDTO;
+import JK.pfm.dto.BalanceBreakdownDTO;
 import JK.pfm.dto.CashFlowDTO;
 import JK.pfm.dto.DailyTrend;
 import JK.pfm.dto.ExpenseByCategoryDTO;
 import JK.pfm.model.Account;
-import JK.pfm.model.Budget;
-import JK.pfm.model.Category;
 import JK.pfm.repository.AccountRepository;
-import JK.pfm.repository.BudgetRepository;
 import JK.pfm.repository.TransactionRepository;
+import JK.pfm.util.AccountSpecifications;
 import JK.pfm.util.SecurityUtil;
 import JK.pfm.util.Validations;
 import java.math.BigDecimal;
@@ -18,10 +16,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -30,13 +26,18 @@ import org.springframework.stereotype.Service;
 public class ReportService {
 
     private final TransactionRepository transactionRepository;
-    private final BudgetRepository budgetRepository;
+    @Autowired
+    private AccountService accountService;
+    @Autowired
+    private SavingsGoalService savingsGoalsService;
     @Autowired
     private AccountRepository accountRepository;
+    @Autowired
+    private SavingsGoalService savingsGoalService;
 
-    public ReportService(TransactionRepository transactionRepository, BudgetRepository budgetRepository) {
+    public ReportService(TransactionRepository transactionRepository) {
         this.transactionRepository = transactionRepository;
-        this.budgetRepository = budgetRepository;
+
     }
 
     //total spending and income
@@ -60,17 +61,13 @@ public class ReportService {
         summary.put("totalIncome", totalIncome);
         return summary;
     }
-    /*Upadate later
-    //net savings calculation
-    public BigDecimal calculateNetSavings(LocalDate start, LocalDate end){
-        Validations.checkDate(start);
-        Validations.checkDate(end);
-        
-        BigDecimal totalSpending = transactionRepository.sumByTypeAndDate("Expense", start, end);
-        BigDecimal totalIncome = transactionRepository.sumByTypeAndDate("Income", start, end);
-        return totalIncome.subtract(totalSpending);
+
+    //get total user balance
+    public BigDecimal getTotalUserBalance(){
+        BigDecimal sum = accountService.getTotalBalance().add(savingsGoalsService.getTotalBalance());
+        return sum;
     }
-*/
+    
     
     //expenses breaked down by category
     public List<ExpenseByCategoryDTO> getSpendingByCategory(LocalDate start, LocalDate end) {
@@ -121,64 +118,50 @@ public class ReportService {
         return trends;
     }
     
-    //calculate net daily cashflow
-    public List<CashFlowDTO> getDailyCashFlow(LocalDate start, LocalDate end) {
-        Validations.checkDate(start);
-        Validations.checkDate(end);
+    //calculate monthly cashflow
+    public List<CashFlowDTO> getMonthlyCashFlow() {
         
-       List<CashFlowDTO> dailyCashFlow = new ArrayList<>();
-       //getting daily income/expense
-       List<DailyTrend> dailyIncomeExpense = getDailyTrends(start, end);
+       List<CashFlowDTO> cashFlowList = new ArrayList<>();
+       LocalDate today = LocalDate.now();
        
-       for(DailyTrend row : dailyIncomeExpense){
-           BigDecimal inflow = row.getTotalIncome();
-           BigDecimal outflow = row.getTotalExpense();
-           BigDecimal netflow = inflow.subtract(outflow);
-           LocalDate date = row.getDate();
-           //setting CashFlowDTO
-           CashFlowDTO netDailyFlow = new CashFlowDTO(date, inflow, outflow, netflow);
-           dailyCashFlow.add(netDailyFlow);
-       }
-       return dailyCashFlow;
+       for (int i = 6; i >= 0; i--) {
+
+        LocalDate targetMonth = today.minusMonths(i);
+        LocalDate startOfMonth = targetMonth.withDayOfMonth(1);
+        LocalDate endOfMonth = targetMonth.withDayOfMonth(targetMonth.lengthOfMonth());
+        
+        Map<String, BigDecimal> summary = getSpendingAndIncomeSummary(startOfMonth, endOfMonth);
+        BigDecimal inflow = summary.getOrDefault("totalIncome", BigDecimal.ZERO);
+        BigDecimal outflow = summary.getOrDefault("totalSpending", BigDecimal.ZERO);
+        BigDecimal netFlow = inflow.subtract(outflow);
+        
+        String monthLabel = startOfMonth.getMonth().toString();
+        
+        CashFlowDTO dto = new CashFlowDTO(monthLabel, inflow, outflow, netFlow);
+        cashFlowList.add(dto);
+    }
+       
+
+       return cashFlowList;
     }
     
-    /*/budget vs actual spending
-    public List<BudgetVsActualDTO> getBudgetVsActual(LocalDate start, LocalDate end) {
-        Validations.checkDate(start);
-        Validations.checkDate(end);
+    //get balance breakdown
+    public List<BalanceBreakdownDTO> getBalanceBreakdown(){
+        Long userId = SecurityUtil.getUserId();
+        List<Account> accounts = accountRepository.findAll(AccountSpecifications.belongsToUser(userId));
+        List<BalanceBreakdownDTO> breakdown = new ArrayList<>();
         
-        // Retrieve actual spending by category
-        List<Object[]> transactionData = transactionRepository.sumExpensesByCategory(start, end);
-        Map<String, BigDecimal> actualByCategory = new HashMap<>();
-        for (Object[] row : transactionData) {
-            String category = (String) row[0];
-            BigDecimal actual = (BigDecimal) row[1];
-            actualByCategory.put(category, actual);
+        for(Account acc : accounts){
+            BalanceBreakdownDTO balanceBreakdownDTO = new BalanceBreakdownDTO(acc.getName(), acc.getAmount());
+            breakdown.add(balanceBreakdownDTO);
         }
         
-        // Retrieve budgets
-        List<Budget> budgets = budgetRepository.findAllBudgets();
-        Map<String, BigDecimal> budgetByCategory = new HashMap<>();
-        for (Budget budget : budgets) {
-            Category category = budget.getCategory();
-            budgetByCategory.put(category.getName(), budget.getAmount());
-        }
+        BigDecimal savingsBalance = savingsGoalService.getTotalBalance();
+        BalanceBreakdownDTO balanceBreakdownDTO = new BalanceBreakdownDTO("Savings", savingsBalance);
+        breakdown.add(balanceBreakdownDTO);
         
-        // Create a set of all categories (from either budgets or transactions)
-        Set<String> allCategories = new HashSet<>();
-        allCategories.addAll(budgetByCategory.keySet());
-        allCategories.addAll(actualByCategory.keySet());
-        
-        // Build the list of DTOs
-        List<BudgetVsActualDTO> report = new ArrayList<>();
-        for (String category : allCategories) {
-            BigDecimal budgeted = budgetByCategory.getOrDefault(category, BigDecimal.ZERO);
-            BigDecimal actual = actualByCategory.getOrDefault(category, BigDecimal.ZERO);
-            report.add(new BudgetVsActualDTO(category, budgeted, actual));
-        }
-        
-        return report;
+        return breakdown;
     }
-    */
+
 }
 

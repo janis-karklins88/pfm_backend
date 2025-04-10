@@ -5,13 +5,13 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 
 public class CashFlowDTO {
-    private LocalDate date;
+    private String month;
     private BigDecimal inflow;
     private BigDecimal outflow;
     private BigDecimal netFlow;
 
-    public CashFlowDTO(LocalDate date, BigDecimal inflow, BigDecimal outflow, BigDecimal netFlow) {
-        this.date = date;
+    public CashFlowDTO(String month, BigDecimal inflow, BigDecimal outflow, BigDecimal netFlow) {
+        this.month = month;
         this.inflow = inflow;
         this.outflow = outflow;
         this.netFlow = netFlow;
@@ -19,12 +19,12 @@ public class CashFlowDTO {
 
     // Getters and setters
 
-    public LocalDate getDate() {
-        return date;
+    public String getMonth() {
+        return month;
     }
 
-    public void setDate(LocalDate date) {
-        this.date = date;
+    public void setMonth(String month) {
+        this.month = month;
     }
 
     public BigDecimal getInflow() {

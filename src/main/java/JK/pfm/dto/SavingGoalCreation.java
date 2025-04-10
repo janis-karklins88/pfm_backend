@@ -5,7 +5,7 @@ import java.math.BigDecimal;
 
 
 public class SavingGoalCreation {
-    private BigDecimal currentAmount;
+    private BigDecimal currentAmount = BigDecimal.ZERO;
     private BigDecimal targetAmount;
     private String name;
     private String description;

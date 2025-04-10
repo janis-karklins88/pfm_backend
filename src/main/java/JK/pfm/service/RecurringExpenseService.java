@@ -130,10 +130,9 @@ public class RecurringExpenseService {
     
     
     //change account
-    public RecurringExpense updateRecurringExpenseAccount(Long id, String accountName){
-        Validations.emptyFieldValidation(accountName, "Account");
+    public RecurringExpense updateRecurringExpenseAccount(Long id, Long accountName){
         Long userId = SecurityUtil.getUserId();
-        Account account = accountRepository.findByUserIdAndName(userId, accountName).orElseThrow(() -> new RuntimeException("Incorrect account!"));
+        Account account = accountRepository.findByUserIdAndId(userId, accountName).orElseThrow(() -> new RuntimeException("Incorrect account!"));
         RecurringExpense expense = recurringExpenseRepository.findById(id).orElseThrow(() -> new RuntimeException("Incorrect payment!"));
         
         if (!expense.getAccount().getUser().getId().equals(userId)) {

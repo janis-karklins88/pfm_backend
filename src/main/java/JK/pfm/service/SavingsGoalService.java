@@ -34,6 +34,12 @@ public class SavingsGoalService {
         Specification<SavingsGoal> spec = Specification.where(SavingsGoalSpecification.belongsToUser(userId));
         return savingsGoalRepository.findAll(spec);
     }
+    
+    //getting total balance
+    public BigDecimal getTotalBalance(){
+        Long userId = SecurityUtil.getUserId();
+        return savingsGoalRepository.getTotalBalanceByUserId(userId);
+    }
 
     //saving saving goals
     public SavingsGoal saveSavingsGoal(SavingsGoal goal) {

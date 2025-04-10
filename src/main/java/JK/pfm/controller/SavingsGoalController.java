@@ -46,6 +46,13 @@ public class SavingsGoalController {
         List<SavingsGoal> goals = savingsGoalService.getAllSavingsGoals(userId);
         return ResponseEntity.ok(goals);
     }
+    
+    //get all savings balance
+    @GetMapping("savings-balance")
+    public ResponseEntity<BigDecimal> getTotalBalance() {
+        BigDecimal sum = savingsGoalService.getTotalBalance();
+        return ResponseEntity.ok(sum);
+    }
 
     //Create saving goal
     @PostMapping
