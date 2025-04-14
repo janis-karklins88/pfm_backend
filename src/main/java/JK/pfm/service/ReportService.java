@@ -11,11 +11,13 @@ import JK.pfm.util.AccountSpecifications;
 import JK.pfm.util.SecurityUtil;
 import JK.pfm.util.Validations;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -162,6 +164,74 @@ public class ReportService {
         
         return breakdown;
     }
+    
+    //get expense and prediction
+    public Map<String, BigDecimal> getExpenseAndPrediction(){
+        //get user accounts
+        Long userId = SecurityUtil.getUserId();        
+        List<Account> accounts = accountRepository.findByUserId(userId);
+        List<Long> accountIds = new ArrayList<>();
+        for(Account account : accounts){
+            Long id = account.getId();
+            accountIds.add(id);
+        }
+        
+        //get monthly expense
+        Map<String, BigDecimal> breakdown = new LinkedHashMap<>();
+        LocalDate today = LocalDate.now();
+        
+        BigDecimal sumExpenses = BigDecimal.ZERO;
+        BigDecimal recentExpenses = BigDecimal.ZERO;
+        
+        for (int i = 9; i >= 0; i--) {
 
+        LocalDate targetMonth = today.minusMonths(i);
+        LocalDate startOfMonth = targetMonth.withDayOfMonth(1);
+        LocalDate endOfMonth = targetMonth.withDayOfMonth(targetMonth.lengthOfMonth());
+        String monthLabel = startOfMonth.getMonth().toString().substring(0, 3);
+        
+        BigDecimal totalSpending = transactionRepository.sumByTypeAndDate("Expense", accountIds, startOfMonth, endOfMonth);
+        breakdown.put(monthLabel, totalSpending != null ? totalSpending : BigDecimal.ZERO);
+        //for calculating average total and recent expenses 
+        sumExpenses = sumExpenses.add(totalSpending);
+        if(i > 7){
+            recentExpenses = recentExpenses.add(totalSpending);
+        }
+        }
+        
+        //calculate for how many months there is data
+        int monthsWithData = (int) breakdown.values().stream()
+        .filter(value -> value.compareTo(BigDecimal.ZERO) != 0)
+        .count();
+        
+        //calculating averages and trend factor
+        BigDecimal totalAverage = sumExpenses.divide(new BigDecimal(monthsWithData), 2, RoundingMode.HALF_UP);
+        BigDecimal recentAverage = sumExpenses.divide(new BigDecimal(3), 2, RoundingMode.HALF_UP);
+        BigDecimal trendFactor = recentAverage.divide(totalAverage, 2, RoundingMode.HALF_UP);
+        
+        
+        
+        //set predicted expense
+        BigDecimal predictedExpense;
+        if(monthsWithData < 6){
+            predictedExpense = totalAverage;
+        } else {
+            predictedExpense = totalAverage.multiply(trendFactor);
+        }
+        
+        
+        // Add prediction for next 2 months
+        LocalDate nextMonth = today.plusMonths(1);
+        String nextMonthLabel = nextMonth.getMonth().toString().substring(0, 3);
+        breakdown.put(nextMonthLabel, predictedExpense);
+    
+        LocalDate nextNextMonth = today.plusMonths(2);
+        String nextNextMonthLabel = nextNextMonth.getMonth().toString().substring(0, 3);
+        breakdown.put(nextNextMonthLabel, predictedExpense);
+        
+        
+
+        return breakdown;
+    }
 }
 

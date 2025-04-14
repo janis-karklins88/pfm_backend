@@ -91,6 +91,13 @@ public class ReportController {
         return breakdown;
     }
     
+    //get spending for current + 9 last months + prediction for next 2 months
+    @GetMapping("/expense-and-prediction")
+    public ResponseEntity<Map<String, BigDecimal>> getExpenseAndPrediction(){
+        Map<String, BigDecimal> breakdown = reportService.getExpenseAndPrediction();
+        return ResponseEntity.ok(breakdown);
+    }
+    
 
 }
 
