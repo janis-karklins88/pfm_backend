@@ -98,6 +98,14 @@ public class ReportController {
         return ResponseEntity.ok(breakdown);
     }
     
+    //get spending for current + 9 last months + prediction for next 2 months
+    @GetMapping("/expense-for-category")
+    public ResponseEntity<Map<String, BigDecimal>> getExpenseByCategory(
+        @RequestParam(required = false) Long categoryId){
+        Map<String, BigDecimal> breakdown = reportService.getExpenseForCategory(categoryId);
+        return ResponseEntity.ok(breakdown);
+    }
+    
 
 }
 

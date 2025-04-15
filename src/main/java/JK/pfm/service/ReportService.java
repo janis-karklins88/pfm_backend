@@ -194,7 +194,7 @@ public class ReportService {
         breakdown.put(monthLabel, totalSpending != null ? totalSpending : BigDecimal.ZERO);
         //for calculating average total and recent expenses 
         sumExpenses = sumExpenses.add(totalSpending);
-        if(i > 7){
+        if(i > 0 && i <= 3){
             recentExpenses = recentExpenses.add(totalSpending);
         }
         }
@@ -204,10 +204,15 @@ public class ReportService {
         .filter(value -> value.compareTo(BigDecimal.ZERO) != 0)
         .count();
         
-        //calculating averages and trend factor
-        BigDecimal totalAverage = sumExpenses.divide(new BigDecimal(monthsWithData), 2, RoundingMode.HALF_UP);
-        BigDecimal recentAverage = sumExpenses.divide(new BigDecimal(3), 2, RoundingMode.HALF_UP);
-        BigDecimal trendFactor = recentAverage.divide(totalAverage, 2, RoundingMode.HALF_UP);
+         //calculating averages and trend factor
+        BigDecimal totalAverage = monthsWithData > 0 
+            ? sumExpenses.divide(new BigDecimal(monthsWithData), 2, RoundingMode.HALF_UP)
+            : BigDecimal.ZERO;
+        BigDecimal recentAverage = recentExpenses.divide(new BigDecimal(3), 2, RoundingMode.HALF_UP);
+        BigDecimal trendFactor = BigDecimal.ONE;
+            if (totalAverage.compareTo(BigDecimal.ZERO) != 0) {
+                trendFactor = recentAverage.divide(totalAverage, 2, RoundingMode.HALF_UP);
+            }
         
         
         
@@ -232,6 +237,82 @@ public class ReportService {
         
 
         return breakdown;
+    }
+    
+    //get expense for category for last 10 months +2 next months
+    public Map<String, BigDecimal> getExpenseForCategory(Long categoryId){
+        //get user accounts
+        Long userId = SecurityUtil.getUserId();        
+        List<Account> accounts = accountRepository.findByUserId(userId);
+        List<Long> accountIds = new ArrayList<>();
+        for(Account account : accounts){
+            Long id = account.getId();
+            accountIds.add(id);
+        }
+        
+        //get monthly expense
+        Map<String, BigDecimal> breakdown = new LinkedHashMap<>();
+        LocalDate today = LocalDate.now();
+        
+        BigDecimal sumExpenses = BigDecimal.ZERO;
+        BigDecimal recentExpenses = BigDecimal.ZERO;
+        int monthsWithData = 0;
+        
+        for (int i = 9; i >= 0; i--) {
+
+        LocalDate targetMonth = today.minusMonths(i);
+        LocalDate startOfMonth = targetMonth.withDayOfMonth(1);
+        LocalDate endOfMonth = targetMonth.withDayOfMonth(targetMonth.lengthOfMonth());
+        String monthLabel = startOfMonth.getMonth().toString().substring(0, 3);
+        
+        BigDecimal totalSpending = transactionRepository.sumByTypeAndDateAndCategory("Expense", accountIds, startOfMonth, endOfMonth, categoryId);
+        breakdown.put(monthLabel, totalSpending != null ? totalSpending : BigDecimal.ZERO);
+        //for calculating average total and recent expenses 
+        sumExpenses = sumExpenses.add(totalSpending);
+        if(i > 0 && i <= 3){
+            recentExpenses = recentExpenses.add(totalSpending);
+        }
+        // Check if there were any transactions in this month (regardless of category)
+        boolean hasTransactions = transactionRepository
+            .existsByAccountIdInAndDateBetween(accountIds, startOfMonth, endOfMonth);
+        if (hasTransactions) {
+            monthsWithData++;  // Count this month as valid data
+        }
+        }
+               
+        //calculating averages and trend factor
+        BigDecimal totalAverage = monthsWithData > 0 
+            ? sumExpenses.divide(new BigDecimal(monthsWithData), 2, RoundingMode.HALF_UP)
+            : BigDecimal.ZERO;
+        BigDecimal recentAverage = recentExpenses.divide(new BigDecimal(3), 2, RoundingMode.HALF_UP);
+        BigDecimal trendFactor = BigDecimal.ONE;
+            if (totalAverage.compareTo(BigDecimal.ZERO) != 0) {
+                trendFactor = recentAverage.divide(totalAverage, 2, RoundingMode.HALF_UP);
+            }
+        
+        
+        
+        //set predicted expense
+        BigDecimal predictedExpense;
+        if(monthsWithData < 6){
+            predictedExpense = totalAverage;
+        } else {
+            predictedExpense = totalAverage.multiply(trendFactor);
+        }
+        
+        
+        // Add prediction for next 2 months
+        LocalDate nextMonth = today.plusMonths(1);
+        String nextMonthLabel = nextMonth.getMonth().toString().substring(0, 3);
+        breakdown.put(nextMonthLabel, predictedExpense);
+    
+        LocalDate nextNextMonth = today.plusMonths(2);
+        String nextNextMonthLabel = nextNextMonth.getMonth().toString().substring(0, 3);
+        breakdown.put(nextNextMonthLabel, predictedExpense);
+        
+        
+
+        return breakdown; 
     }
 }
 

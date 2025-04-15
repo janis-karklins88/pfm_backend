@@ -27,6 +27,21 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long>,
                             @Param("accountIds") List<Long> accountIds, 
                             @Param("start") LocalDate start, 
                             @Param("end") LocalDate end);
+    
+    //total category expense for last 10 + current month
+    @Query("SELECT COALESCE(SUM(t.amount), 0) " +
+       "FROM Transaction t " +
+       "WHERE t.type = :type " +
+       "AND t.account.id IN :accountIds " +
+       "AND t.date BETWEEN :start AND :end " +
+       "AND t.category.id = :categoryId " +
+       "AND t.description NOT IN ('Deposit to savings', 'Withdraw from savings')")
+    BigDecimal sumByTypeAndDateAndCategory(@Param("type") String type, 
+                                       @Param("accountIds") List<Long> accountIds, 
+                                       @Param("start") LocalDate start, 
+                                       @Param("end") LocalDate end,
+                                       @Param("categoryId") Long categoryId);
+
 
     
     //query for getting expenses by category breakdown
@@ -54,7 +69,9 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long>,
     //finding transactions between dates
     List<Transaction> findByDateBetween(LocalDate startDate, LocalDate endDate);
     
-    //find with paremeters
+    //check if date range has any transactions
+    boolean existsByAccountIdInAndDateBetween(List<Long> accountIds, LocalDate start, LocalDate end);
+
     
     
 }
