@@ -4,18 +4,23 @@ import JK.pfm.model.Account;
 import JK.pfm.model.Category;
 import JK.pfm.model.SavingsGoal;
 import JK.pfm.model.Transaction;
+import JK.pfm.repository.AccountRepository;
 import JK.pfm.repository.CategoryRepository;
 import JK.pfm.repository.SavingsGoalRepository;
+import JK.pfm.repository.TransactionRepository;
 import JK.pfm.specifications.SavingsGoalSpecification;
 import JK.pfm.util.SecurityUtil;
 import JK.pfm.util.Validations;
 import jakarta.transaction.Transactional;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import org.springframework.data.jpa.domain.Specification;
 
@@ -25,9 +30,13 @@ public class SavingsGoalService {
     @Autowired
     private SavingsGoalRepository savingsGoalRepository;
     @Autowired
+    private TransactionRepository transactionRepository;
+    @Autowired
     private CategoryRepository categoryRepository;
     @Autowired
     private TransactionService transactionService;
+    @Autowired
+    private AccountRepository accountRepository;
 
     //getting all saving goals
     public List<SavingsGoal> getAllSavingsGoals(Long userId) {
@@ -147,5 +156,40 @@ public class SavingsGoalService {
             throw new RuntimeException("Incorrect type");
         }
         return savingsGoalRepository.save(savingsGoal);
+    }
+    
+    //get net savings monthly balance
+    public Map<String, BigDecimal> getNetMonthlyBalance(){
+        //get user accounts
+        Long userId = SecurityUtil.getUserId();        
+        List<Account> accounts = accountRepository.findByUserId(userId);
+        List<Long> accountIds = new ArrayList<>();
+        for(Account account : accounts){
+            Long id = account.getId();
+            accountIds.add(id);
+        }
+        
+        //
+        Map<String, BigDecimal> breakdown = new LinkedHashMap<>();
+        LocalDate today = LocalDate.now();
+        
+             
+        for (int i = 9; i >= 0; i--) {
+
+        LocalDate targetMonth = today.minusMonths(i);
+        LocalDate startOfMonth = targetMonth.withDayOfMonth(1);
+        LocalDate endOfMonth = targetMonth.withDayOfMonth(targetMonth.lengthOfMonth());
+        String monthLabel = startOfMonth.getMonth().toString().substring(0, 3);
+        
+        //check if active month
+        boolean hasTransactions = transactionRepository
+            .existsByAccountIdInAndDateBetween(accountIds, startOfMonth, endOfMonth);
+        if(hasTransactions){
+            BigDecimal netBalance = transactionRepository.netMonthlyBalance(accountIds, startOfMonth, endOfMonth);
+            breakdown.put(monthLabel, netBalance);
+        }
+        
+        }
+        return breakdown;
     }
 }

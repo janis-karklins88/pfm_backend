@@ -101,4 +101,11 @@ public class SavingsGoalController {
         SavingsGoal updatedGoal = savingsGoalService.transferFunds(id, request.getAmount(), request.getType(), accOpt);
         return ResponseEntity.ok(updatedGoal);
     }
+    
+    //total net deposits
+    @GetMapping("net-balance")
+    public ResponseEntity<Map<String, BigDecimal>> getNetMonthlyBalance() {
+        Map<String, BigDecimal> netBalance = savingsGoalService.getNetMonthlyBalance();
+        return ResponseEntity.ok(netBalance);
+    }
 }

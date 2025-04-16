@@ -71,6 +71,19 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long>,
     
     //check if date range has any transactions
     boolean existsByAccountIdInAndDateBetween(List<Long> accountIds, LocalDate start, LocalDate end);
+    
+    //get net savings balance for dates
+    @Query("SELECT COALESCE(SUM(CASE " +
+           "WHEN t.type = 'Deposit' THEN t.amount " +
+           "WHEN t.type = 'Withdrawal' THEN -t.amount " +
+           "ELSE 0 END), 0) " +
+           "FROM Transaction t " +
+           "WHERE t.account.id IN :accountIds " +
+           "AND t.date BETWEEN :start AND :end " +
+           "AND LOWER(t.category.name) = 'savings'")
+    BigDecimal netMonthlyBalance(@Param("accountIds") List<Long> accountIds,
+                                 @Param("start") LocalDate start,
+                                 @Param("end") LocalDate end);
 
     
     
