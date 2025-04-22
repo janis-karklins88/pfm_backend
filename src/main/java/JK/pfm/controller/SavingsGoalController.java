@@ -58,7 +58,7 @@ public class SavingsGoalController {
     @PostMapping
     public ResponseEntity<SavingsGoal> createSavingsGoal(@RequestBody SavingGoalCreation request) {
         User user = SecurityUtil.getUser(userRepository);
-        SavingsGoal goal = new SavingsGoal(request.getName(), request.getTargetAmount(), request.getCurrentAmount(), request.getDescription(), user);
+        SavingsGoal goal = new SavingsGoal(request.getName(), request.getTargetAmount(), request.getDescription(), user);
         SavingsGoal savedGoal = savingsGoalService.saveSavingsGoal(goal);
         return ResponseEntity.ok(savedGoal);
     }

@@ -18,7 +18,7 @@ public class SavingsGoal {
     
     private BigDecimal targetAmount;
     
-    private BigDecimal currentAmount;
+    private BigDecimal currentAmount = BigDecimal.ZERO;
     
     private String description;
     
@@ -33,10 +33,9 @@ public class SavingsGoal {
     public SavingsGoal() {
     }
 
-    public SavingsGoal(String name, BigDecimal targetAmount, BigDecimal currentAmount, String description, User user) {
+    public SavingsGoal(String name, BigDecimal targetAmount, String description, User user) {
         this.name = name;
         this.targetAmount = targetAmount;
-        this.currentAmount = currentAmount;
         this.description = description;
         this.user = user;
     }

@@ -5,10 +5,11 @@ import java.math.BigDecimal;
 
 
 public class SavingGoalCreation {
-    private BigDecimal currentAmount = BigDecimal.ZERO;
     private BigDecimal targetAmount;
     private String name;
     private String description;
+    
+
     
     // getters and setters
     public String getName() {
@@ -19,13 +20,7 @@ public class SavingGoalCreation {
         this.name = name;
     }
     
-    public BigDecimal getCurrentAmount(){
-        return currentAmount;
-    }
-    
-    public void setCurrentAmount(BigDecimal amount){
-        this.currentAmount = amount;
-    }
+
     
     public BigDecimal getTargetAmount(){
         return targetAmount;

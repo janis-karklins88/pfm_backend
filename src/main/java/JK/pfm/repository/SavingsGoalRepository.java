@@ -20,11 +20,12 @@ public interface SavingsGoalRepository extends JpaRepository<SavingsGoal, Long>,
     
     //get last months savings balance
     @Query("""
-      SELECT COALESCE(g.lastMonthAmount, 0)
-      FROM SavingsGoal g
-      WHERE g.user.id = :userId
+    SELECT COALESCE(MAX(g.lastMonthAmount), 0)
+    FROM SavingsGoal g
+    WHERE g.user.id = :userId
     """)
     BigDecimal getLastMonthBalanceByUserId(@Param("userId") Long userId);
+
     
     /**
      * Find every user ID that has at least one SavingsGoal.
