@@ -2,11 +2,13 @@ package jk.pfm.controller;
 
 import JK.pfm.dto.UserLoginRequest;
 import JK.pfm.model.User;
+import JK.pfm.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import JK.pfm.service.UserService;
+import JK.pfm.util.SecurityUtil;
 
 
 @RestController
@@ -15,6 +17,8 @@ public class UserController {
     
     @Autowired
     private UserService userService;
+    @Autowired
+    private UserRepository userRepository;
     
       
     // Register new user
@@ -35,7 +39,12 @@ public class UserController {
         return ResponseEntity.ok("Bearer " + token);
     }
     
-    //Logout user
+    //get username
+    @GetMapping("/name")
+    public ResponseEntity<String> getName(){
+        User user = SecurityUtil.getUser(userRepository);
+        return ResponseEntity.ok(user.getUsername());
+    }
     
     
 }

@@ -130,37 +130,43 @@ public class BudgetService {
         return budgetRepository.getTotalSpentOnBudget(category.getId(), budget.getStartDate(), budget.getEndDate(), accountIds);
     } 
     
-    //recreate budget for next month
-    @Scheduled(cron = "0 0 12 * * ?")
-    public void createNextMonthBudgets(){
-        User user = SecurityUtil.getUser(userRepository);
-        // Compute current month and next month date ranges.
+    // Recreate budgets for next month
+    // (switch back to cron once you’re done testing)
+    @Scheduled(fixedRate = 60_000)
+    @Transactional
+    public void createNextMonthBudgets() {
+        // Compute date boundaries
         LocalDate today = LocalDate.now();
         LocalDate endOfCurrentMonth = today.with(TemporalAdjusters.lastDayOfMonth());
         LocalDate startOfNextMonth = endOfCurrentMonth.plusDays(1);
         LocalDate endOfNextMonth = startOfNextMonth.with(TemporalAdjusters.lastDayOfMonth());
-        
-        //get budgets
-        List<Budget> currentBudgets = budgetRepository.findByMonthlyTrueAndStartDateLessThanEqualAndEndDateGreaterThanEqual(
-            today, today
-        );
-        
-        //recreating budget
-        for (Budget currentBudget : currentBudgets) {
-            // Check if a budget for next month already exists for this user and this budget type.
-            boolean exists = budgetRepository.existsByUserAndCategoryAndStartDateAndMonthlyTrue(
-                currentBudget.getUser(),
-                currentBudget.getCategory(),
-                startOfNextMonth
-            );
-            if (!exists) {
-                // Create a new budget by copying relevant fields and setting the dates.
-                Budget nextMonthBudget = new Budget(currentBudget.getAmount(), startOfNextMonth, endOfNextMonth, currentBudget.getCategory(), user);
-                budgetRepository.save(nextMonthBudget);
-            }
-        }
 
+        // Find all monthly budgets that are “active” right now
+        List<Budget> currentBudgets = budgetRepository
+            .findByMonthlyTrueAndStartDateLessThanEqualAndEndDateGreaterThanEqual(today, today);
+
+        for (Budget current : currentBudgets) {
+            User owner = current.getUser();  // use the user from the budget itself
+
+            boolean exists = budgetRepository.existsByUserAndCategoryAndStartDateAndMonthlyTrue(
+                owner,
+                current.getCategory(),
+                startOfNextMonth
+        );
+
+        if (!exists) {
+            Budget next = new Budget(
+                current.getAmount(),
+                startOfNextMonth,
+                endOfNextMonth,
+                current.getCategory(),
+                owner
+            );
+            budgetRepository.save(next);
+        }
     }
+}
+
     
     //set monthly active/inactive
     public Budget updateMonthlyStatus(Long id, boolean active){

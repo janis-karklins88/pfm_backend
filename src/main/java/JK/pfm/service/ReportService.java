@@ -2,10 +2,12 @@ package JK.pfm.service;
 
 import JK.pfm.dto.BalanceBreakdownDTO;
 import JK.pfm.dto.CashFlowDTO;
+import JK.pfm.dto.ChangesVsLastMonthDTO;
 import JK.pfm.dto.DailyTrend;
 import JK.pfm.dto.ExpenseByCategoryDTO;
 import JK.pfm.model.Account;
 import JK.pfm.repository.AccountRepository;
+import JK.pfm.repository.SavingsGoalRepository;
 import JK.pfm.repository.TransactionRepository;
 import JK.pfm.util.AccountSpecifications;
 import JK.pfm.util.SecurityUtil;
@@ -36,6 +38,8 @@ public class ReportService {
     private AccountRepository accountRepository;
     @Autowired
     private SavingsGoalService savingsGoalService;
+    @Autowired
+    private SavingsGoalRepository savingsGoalRepository;
 
     public ReportService(TransactionRepository transactionRepository) {
         this.transactionRepository = transactionRepository;
@@ -313,6 +317,91 @@ public class ReportService {
         
 
         return breakdown; 
+    }
+    
+    //get amount changes vs last month
+    public List<ChangesVsLastMonthDTO> getChanges(){
+        List<ChangesVsLastMonthDTO> changes = new ArrayList<>();
+        //last and this month dates
+        LocalDate today = LocalDate.now();
+        LocalDate lastMonth = today.minusMonths(1);
+        LocalDate startOfLastMonth = lastMonth.withDayOfMonth(1);
+        LocalDate endOfLastMonth = lastMonth.withDayOfMonth(lastMonth.lengthOfMonth());
+        LocalDate startOfThisMonth = today.withDayOfMonth(1);
+        LocalDate endOfThisMonth = today.withDayOfMonth(today.lengthOfMonth());
+        
+        /***************************Income and Expense**********************************/
+        Map<String, BigDecimal> thisMonthSummary = getSpendingAndIncomeSummary(startOfThisMonth, endOfThisMonth);
+        Map<String, BigDecimal> lastMonthSummary = getSpendingAndIncomeSummary(startOfLastMonth, endOfLastMonth);
+        
+        //income change
+        BigDecimal thisIncome = thisMonthSummary
+        .getOrDefault("Income", BigDecimal.ZERO);
+        BigDecimal lastIncome = lastMonthSummary
+        .getOrDefault("Income", BigDecimal.ZERO);
+        BigDecimal incomeChange;
+        
+        //calculation        
+        if (lastIncome.compareTo(BigDecimal.ZERO) == 0) {
+        // define 0→0 as 0%, and 0→nonzero as 100%
+        incomeChange = thisIncome.compareTo(BigDecimal.ZERO) == 0
+            ? BigDecimal.ZERO
+            : BigDecimal.valueOf(100);
+        } else {
+        incomeChange = thisIncome
+            .subtract(lastIncome)                            // difference
+            .multiply(BigDecimal.valueOf(100))               // ×100%
+            .divide(lastIncome, 0, RoundingMode.HALF_UP);    // 2 decimal places
+        }
+        
+        //expense change
+        BigDecimal thisExpense = thisMonthSummary
+        .getOrDefault("Expense", BigDecimal.ZERO);
+        BigDecimal lastExpense = lastMonthSummary
+        .getOrDefault("Expense", BigDecimal.ZERO);
+        BigDecimal expenseChange;
+        
+        //calculation
+        if (lastExpense.compareTo(BigDecimal.ZERO) == 0) {
+        expenseChange = thisExpense.compareTo(BigDecimal.ZERO) == 0
+            ? BigDecimal.ZERO
+            : BigDecimal.valueOf(100);
+        } else {
+        expenseChange = thisExpense
+            .subtract(lastExpense)
+            .multiply(BigDecimal.valueOf(100))
+            .divide(lastExpense, 0, RoundingMode.HALF_UP);
+        }
+        
+        //add to list        
+        ChangesVsLastMonthDTO income = new ChangesVsLastMonthDTO("Income", incomeChange);
+        changes.add(income);
+        ChangesVsLastMonthDTO expense = new ChangesVsLastMonthDTO("Expense", expenseChange);
+        changes.add(expense);
+        
+        /***************************Savings**********************************/
+                
+        Long userId = SecurityUtil.getUserId();
+        BigDecimal current = savingsGoalRepository.getTotalBalanceByUserId(userId);
+        BigDecimal previous = savingsGoalRepository.getLastMonthBalanceByUserId(userId);
+
+        BigDecimal savingsChange;
+        if (previous.compareTo(BigDecimal.ZERO) == 0) {
+        savingsChange = current.compareTo(BigDecimal.ZERO) == 0
+            ? BigDecimal.ZERO
+            : BigDecimal.valueOf(100);
+        } else {
+        savingsChange = current
+            .subtract(previous)
+            .multiply(BigDecimal.valueOf(100))
+            .divide(previous, 0, RoundingMode.HALF_UP);
+}
+        
+        changes.add(new ChangesVsLastMonthDTO("Savings", savingsChange));
+        
+        /***************************Total Balance**********************************/
+        
+        return changes;
     }
 }
 

@@ -73,17 +73,47 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long>,
     boolean existsByAccountIdInAndDateBetween(List<Long> accountIds, LocalDate start, LocalDate end);
     
     //get net savings balance for dates
-    @Query("SELECT COALESCE(SUM(CASE " +
-           "WHEN t.type = 'Deposit' THEN t.amount " +
-           "WHEN t.type = 'Withdrawal' THEN -t.amount " +
-           "ELSE 0 END), 0) " +
-           "FROM Transaction t " +
-           "WHERE t.account.id IN :accountIds " +
-           "AND t.date BETWEEN :start AND :end " +
-           "AND LOWER(t.category.name) = 'savings'")
-    BigDecimal netMonthlyBalance(@Param("accountIds") List<Long> accountIds,
-                                 @Param("start") LocalDate start,
-                                 @Param("end") LocalDate end);
+    @Query("""
+      SELECT COALESCE(
+        SUM(
+          CASE
+            WHEN t.description = 'Deposit to savings'  THEN t.amount
+            WHEN t.description = 'Withdraw from savings' THEN -t.amount
+            ELSE 0
+          END
+        ), 0)
+      FROM Transaction t
+      WHERE 
+        t.account.id IN :accountIds
+        AND LOWER(t.category.name) = 'savings'
+        AND t.date BETWEEN :start AND :end
+    """)
+    BigDecimal netSavingsMonthlyBalance(
+        @Param("accountIds") List<Long> accountIds,
+        @Param("start")      LocalDate start,
+        @Param("end")        LocalDate end
+    );
+    
+    //get last month saving goal balances
+    // in your repository
+    @Query("""
+      SELECT COALESCE(
+        SUM(
+          CASE
+            WHEN t.description = 'Deposit to savings'  THEN t.amount
+            WHEN t.description = 'Withdraw from savings' THEN -t.amount
+            ELSE 0
+          END
+        ), 0)
+      FROM Transaction t
+      WHERE t.account.user.id = :userId
+        AND t.category.name    = 'Savings'
+        AND t.date            <= :cutoffDate
+    """)
+    BigDecimal getSavingsBalanceUpTo(
+      @Param("userId")     Long userId,
+      @Param("cutoffDate") LocalDate cutoffDate
+    );
 
     
     

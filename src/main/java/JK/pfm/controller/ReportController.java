@@ -4,12 +4,14 @@ package JK.pfm.controller;
 import JK.pfm.dto.BalanceBreakdownDTO;
 import JK.pfm.dto.BudgetVsActualDTO;
 import JK.pfm.dto.CashFlowDTO;
+import JK.pfm.dto.ChangesVsLastMonthDTO;
 import JK.pfm.dto.DailyTrend;
 import JK.pfm.dto.ExpenseByCategoryDTO;
 import JK.pfm.service.ReportService;
 import JK.pfm.util.SecurityUtil;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -32,7 +34,7 @@ public class ReportController {
 
     @GetMapping("/summary")
     
-    //getting total spending and expenses
+    //getting total income and expenses
     public ResponseEntity<Map<String, BigDecimal>> getSpendingAndIncomeSummary(
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate start,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate end) {
@@ -106,6 +108,11 @@ public class ReportController {
         return ResponseEntity.ok(breakdown);
     }
     
-
+    //get amount change vs last month
+    @GetMapping("/balance-change")
+    public ResponseEntity<List<ChangesVsLastMonthDTO>> getAmountChanges(){
+        List<ChangesVsLastMonthDTO> changes = reportService.getChanges();
+        return ResponseEntity.ok(changes);
+    }
 }
 

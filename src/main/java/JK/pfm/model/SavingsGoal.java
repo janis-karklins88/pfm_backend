@@ -22,6 +22,8 @@ public class SavingsGoal {
     
     private String description;
     
+    private BigDecimal lastMonthAmount;
+    
     @ManyToOne
     @JoinColumn(name = "user_id")
     @JsonIgnore
@@ -66,6 +68,14 @@ public class SavingsGoal {
 
     public void setCurrentAmount(BigDecimal currentAmount) {
         this.currentAmount = currentAmount;
+    }
+    
+    public BigDecimal getlastMonthAmount() {
+        return lastMonthAmount;
+    }
+
+    public void setlastMonthAmount(BigDecimal lastMonthAmount) {
+        this.lastMonthAmount = lastMonthAmount;
     }
 
 

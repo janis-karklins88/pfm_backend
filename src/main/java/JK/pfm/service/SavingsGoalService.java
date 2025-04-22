@@ -14,6 +14,7 @@ import JK.pfm.util.Validations;
 import jakarta.transaction.Transactional;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.temporal.TemporalAdjusters;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -185,11 +186,14 @@ public class SavingsGoalService {
         boolean hasTransactions = transactionRepository
             .existsByAccountIdInAndDateBetween(accountIds, startOfMonth, endOfMonth);
         if(hasTransactions){
-            BigDecimal netBalance = transactionRepository.netMonthlyBalance(accountIds, startOfMonth, endOfMonth);
+            BigDecimal netBalance = transactionRepository.netSavingsMonthlyBalance(accountIds, startOfMonth, endOfMonth);
             breakdown.put(monthLabel, netBalance);
         }
         
         }
         return breakdown;
     }
+    
+    
+    
 }
