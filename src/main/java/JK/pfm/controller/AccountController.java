@@ -41,11 +41,7 @@ public class AccountController {
     // Create a new account for the authenticated user
     @PostMapping
     public ResponseEntity<Account> createAccount(@RequestBody AccountCreationRequest request) {
-        User user = SecurityUtil.getUser(userRepository);
-        
-        // Create a new account associated with the authenticated user
-        Account account = new Account(request.getName(), request.getAmount(), user);
-        Account savedAccount = accountService.saveAccount(account);
+        Account savedAccount = accountService.saveAccount(request);
         return ResponseEntity.ok(savedAccount);
     }
 

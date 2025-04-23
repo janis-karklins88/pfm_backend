@@ -114,7 +114,31 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long>,
       @Param("userId")     Long userId,
       @Param("cutoffDate") LocalDate cutoffDate
     );
-
+    
+    //get last month total blance
+    /**
+     * Cumulative account balance (summing deposits minus withdrawals)
+     * for all accounts of a user up to and including the given cutoff date,
+     * but ignoring any transactions in the “Savings” category.
+     */
+    @Query("""
+      SELECT COALESCE(
+        SUM(
+          CASE
+            WHEN t.type = 'Deposit'    THEN t.amount
+            WHEN t.type = 'Expense' THEN -t.amount
+            ELSE 0
+          END
+        ), 0)
+      FROM Transaction t
+      WHERE t.account.user.id        = :userId
+        AND LOWER(t.category.name)  <> 'savings'
+        AND t.date                 <= :cutoffDate
+    """)
+    BigDecimal getAccountBalanceUpTo(
+      @Param("userId")     Long userId,
+      @Param("cutoffDate") LocalDate cutoffDate
+    );
     
     
 }

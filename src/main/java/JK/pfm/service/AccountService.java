@@ -1,12 +1,20 @@
 package JK.pfm.service;
 
+import JK.pfm.dto.AccountCreationRequest;
 import JK.pfm.model.Account;
+import JK.pfm.model.Category;
+import JK.pfm.model.Transaction;
+import JK.pfm.model.User;
 import JK.pfm.repository.AccountRepository;
+import JK.pfm.repository.CategoryRepository;
+import JK.pfm.repository.TransactionRepository;
+import JK.pfm.repository.UserRepository;
 import JK.pfm.util.AccountSpecifications;
 import JK.pfm.util.SecurityUtil;
 import JK.pfm.util.Validations;
 import jakarta.transaction.Transactional;
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -18,6 +26,12 @@ public class AccountService {
 
     @Autowired
     private AccountRepository accountRepository;
+    @Autowired
+    private UserRepository userRepository;
+    @Autowired
+    private CategoryRepository categoryRepository;
+    @Autowired
+    private TransactionRepository transactionRepository;
     
 
     
@@ -28,19 +42,46 @@ public class AccountService {
     }
 
     //saving account
-    public Account saveAccount(Account account) {
+    @Transactional
+    public Account saveAccount(AccountCreationRequest request) {
         //validations
-        Validations.emptyFieldValidation(account.getName(), "Name");
-        Validations.numberCheck(account.getAmount(), "Amount");
-        Validations.negativeCheck(account.getAmount(), "Amount");
-        Validations.checkObj(account, "account");
-        Validations.checkObj(account.getUser(), "User");
-
-        if (accountRepository.findByUserIdAndName(account.getUser().getId(), account.getName()).isPresent()) {
-            throw new RuntimeException("Account with name " + account.getName() + " already exists.");
+        Validations.emptyFieldValidation(request.getName(), "Name");
+        Validations.numberCheck(request.getAmount(), "Amount");
+        Validations.negativeCheck(request.getAmount(), "Amount");
+        
+        //get user details
+        Long userId = SecurityUtil.getUserId();
+        
+        //check if account already exist
+        if (accountRepository.findByUserIdAndName(userId, request.getName()).isPresent()) {
+            throw new RuntimeException("Account with name " + request.getName() + " already exists.");
         }
+        
+        Account account = new Account(
+        request.getName(),
+        BigDecimal.ZERO,
+        SecurityUtil.getUser(userRepository));
+        
+        Account saved = accountRepository.save(account);
+        
+       
+        //check for amount
+        if (request.getAmount().compareTo(BigDecimal.ZERO) > 0) {
+            Category misc = categoryRepository
+            .findByName("Misc")
+            .orElseThrow(() -> new IllegalStateException("‘Misc’ category missing"));
+      
+            Transaction opening = new Transaction(
+            LocalDate.now(),
+            request.getAmount(),
+            saved,
+            misc,
+            "Deposit",
+            "Initial account opening");
+            transactionRepository.save(opening);
+    }       
 
-        return accountRepository.save(account);
+        return saved;
     }
 
     //deleting account

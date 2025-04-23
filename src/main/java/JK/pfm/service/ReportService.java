@@ -15,6 +15,7 @@ import JK.pfm.util.Validations;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
+import java.time.temporal.TemporalAdjusters;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -336,9 +337,9 @@ public class ReportService {
         
         //income change
         BigDecimal thisIncome = thisMonthSummary
-        .getOrDefault("Income", BigDecimal.ZERO);
+        .getOrDefault("totalIncome", BigDecimal.ZERO);
         BigDecimal lastIncome = lastMonthSummary
-        .getOrDefault("Income", BigDecimal.ZERO);
+        .getOrDefault("totalIncome", BigDecimal.ZERO);
         BigDecimal incomeChange;
         
         //calculation        
@@ -356,9 +357,9 @@ public class ReportService {
         
         //expense change
         BigDecimal thisExpense = thisMonthSummary
-        .getOrDefault("Expense", BigDecimal.ZERO);
+        .getOrDefault("totalSpending", BigDecimal.ZERO);
         BigDecimal lastExpense = lastMonthSummary
-        .getOrDefault("Expense", BigDecimal.ZERO);
+        .getOrDefault("totalSpending", BigDecimal.ZERO);
         BigDecimal expenseChange;
         
         //calculation
@@ -395,11 +396,35 @@ public class ReportService {
             .subtract(previous)
             .multiply(BigDecimal.valueOf(100))
             .divide(previous, 0, RoundingMode.HALF_UP);
-}
+        }
         
         changes.add(new ChangesVsLastMonthDTO("Savings", savingsChange));
         
         /***************************Total Balance**********************************/
+        // compute the cutoff (last-day-of-previous-month)
+        LocalDate cutoffDate = LocalDate.now()
+        .minusMonths(1)
+        .with(TemporalAdjusters.lastDayOfMonth());
+        
+        BigDecimal totalAccountBalance = getTotalUserBalance();
+        BigDecimal totalLastMonthsBalance = transactionRepository.getAccountBalanceUpTo(userId, cutoffDate).add(previous);
+        
+        BigDecimal totalBalanceChange;
+        //calcs
+        if (totalLastMonthsBalance.compareTo(BigDecimal.ZERO) == 0) {
+        totalBalanceChange = totalAccountBalance.compareTo(BigDecimal.ZERO) == 0
+            ? BigDecimal.ZERO
+            : BigDecimal.valueOf(100);
+        } else {
+        totalBalanceChange = totalAccountBalance
+            .subtract(totalLastMonthsBalance)
+            .multiply(BigDecimal.valueOf(100))
+            .divide(totalLastMonthsBalance, 0, RoundingMode.HALF_UP);
+        }
+        
+        changes.add(new ChangesVsLastMonthDTO("totalBalance", totalBalanceChange));
+        
+        
         
         return changes;
     }
