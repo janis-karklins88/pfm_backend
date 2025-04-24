@@ -5,6 +5,7 @@ import JK.pfm.model.Transaction;
 import JK.pfm.repository.AccountRepository;
 import JK.pfm.repository.TransactionRepository;
 import JK.pfm.specifications.TransactionSpecifications;
+import JK.pfm.util.AccountUtil;
 import JK.pfm.util.SecurityUtil;
 import JK.pfm.util.Validations;
 import jakarta.transaction.Transactional;
@@ -26,7 +27,7 @@ public class TransactionService {
     private TransactionRepository transactionRepository;
     
     @Autowired 
-    private AccountRepository accountRepository;
+    private AccountUtil accountUtil;
     
     
     // Save a new transaction with validations and account balance updates
@@ -73,11 +74,10 @@ public class TransactionService {
     // Delete a transaction by id, adjusting account balance before deletion
     @Transactional
     public boolean deleteTransaction(Long id, Long userId) {
-        Optional<Transaction> transactionOpt = transactionRepository.findById(id);
-        if (transactionOpt.isEmpty()) {
-            throw new RuntimeException("Transaction not found!");
-        }
-        Transaction transaction = transactionOpt.get();
+               
+        Transaction transaction = transactionRepository.findById(id)
+        .orElseThrow(() -> new RuntimeException("Transaction not found!"));
+        
         if (!transaction.getAccount().getUser().getId().equals(userId)) {
             throw new RuntimeException("Transaction not found!");
         }
@@ -137,14 +137,7 @@ public class TransactionService {
     
     //get recent transactions
     public List<Transaction> getRecentTransactions() {
-        Long userId = SecurityUtil.getUserId();
-        
-        List<Account> accounts = accountRepository.findByUserId(userId);
-        List<Long> accountIds = new ArrayList<>();
-        for(Account acc : accounts){
-            Long id = acc.getId();
-            accountIds.add(id);
-        }
+        List<Long> accountIds = accountUtil.getUserAccountIds();
         if (accountIds.isEmpty()) {
         return Collections.emptyList();
         }

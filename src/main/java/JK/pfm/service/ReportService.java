@@ -10,6 +10,7 @@ import JK.pfm.repository.AccountRepository;
 import JK.pfm.repository.SavingsGoalRepository;
 import JK.pfm.repository.TransactionRepository;
 import JK.pfm.util.AccountSpecifications;
+import JK.pfm.util.AccountUtil;
 import JK.pfm.util.SecurityUtil;
 import JK.pfm.util.Validations;
 import java.math.BigDecimal;
@@ -41,24 +42,22 @@ public class ReportService {
     private SavingsGoalService savingsGoalService;
     @Autowired
     private SavingsGoalRepository savingsGoalRepository;
+    @Autowired 
+    private AccountUtil accountUtil;
 
     public ReportService(TransactionRepository transactionRepository) {
         this.transactionRepository = transactionRepository;
 
     }
 
-    //total spending and income
+
+    /*********************************GET TOTAL SPENDING AND INCOME***************************************/
+    
     public Map<String, BigDecimal> getSpendingAndIncomeSummary(LocalDate start, LocalDate end) {
         Validations.checkDate(start);
         Validations.checkDate(end);
-        //get user accounts
-        Long userId = SecurityUtil.getUserId();        
-        List<Account> accounts = accountRepository.findByUserId(userId);
-        List<Long> accountIds = new ArrayList<>();
-        for(Account account : accounts){
-            Long id = account.getId();
-            accountIds.add(id);
-        }
+        //get user accounts    
+        List<Long> accountIds = accountUtil.getUserAccountIds();
         
         BigDecimal totalSpending = transactionRepository.sumByTypeAndDate("Expense", accountIds, start, end);
         BigDecimal totalIncome = transactionRepository.sumByTypeAndDate("Deposit", accountIds, start, end);
@@ -69,23 +68,27 @@ public class ReportService {
         return summary;
     }
 
-    //get total user balance
+    /*********************************GET TOTALUSER BALANCE****************************************/
+    
     public BigDecimal getTotalUserBalance(){
         BigDecimal sum = accountService.getTotalBalance().add(savingsGoalsService.getTotalBalance());
         return sum;
     }
     
     
-    //expenses breaked down by category
+    /*********************************EXPENSE BREAKDOWN BY CATEGORY****************************************/
+    /**
+    * Retrieves the total expenses grouped by category for the current user
+    * between the given start and end dates.
+    *
+    * @param start the first date (inclusive) of the period to query
+    * @param end   the last date (inclusive) of the period to query
+    * @return      a List of ExpenseByCategoryDTO, one entry per category;
+    *              returns an empty list if the user has no accounts
+    */
     public List<ExpenseByCategoryDTO> getSpendingByCategory(LocalDate start, LocalDate end) {
         
-        Long userId = SecurityUtil.getUserId();
-        List<Account> accounts = accountRepository.findByUserId(userId);
-        List<Long> accountIds = new ArrayList<>();
-        for(Account acc : accounts){
-            Long id = acc.getId();
-            accountIds.add(id);
-        }
+        List<Long> accountIds = accountUtil.getUserAccountIds();
         // If no accounts exist for the user, return an empty map
         if (accountIds.isEmpty()) {
             return Collections.emptyList();
@@ -94,7 +97,8 @@ public class ReportService {
         return transactionRepository.findExpensesByCategory(accountIds, start, end);
     }
     
-    //getting daily trends, for now time unit is day, if trend is too granular, time unit should be increased
+    /*********************************GET DAILY TRENDS****************************************/
+    
     public List<DailyTrend> getDailyTrends(LocalDate start, LocalDate end) {
         Validations.checkDate(start);
         Validations.checkDate(end);
@@ -125,7 +129,8 @@ public class ReportService {
         return trends;
     }
     
-    //calculate monthly cashflow
+    /*********************************GET MONTHLY CASHFLOW****************************************/
+    
     public List<CashFlowDTO> getMonthlyCashFlow() {
         
        List<CashFlowDTO> cashFlowList = new ArrayList<>();
@@ -152,7 +157,8 @@ public class ReportService {
        return cashFlowList;
     }
     
-    //get balance breakdown
+    /*********************************GETBALANCE BREAKDOWN****************************************/
+    
     public List<BalanceBreakdownDTO> getBalanceBreakdown(){
         Long userId = SecurityUtil.getUserId();
         List<Account> accounts = accountRepository.findAll(AccountSpecifications.belongsToUser(userId));
@@ -170,16 +176,11 @@ public class ReportService {
         return breakdown;
     }
     
-    //get expense and prediction
+    /*********************************GET EXPENSE AND PREDICTIONS****************************************/
+    
     public Map<String, BigDecimal> getExpenseAndPrediction(){
         //get user accounts
-        Long userId = SecurityUtil.getUserId();        
-        List<Account> accounts = accountRepository.findByUserId(userId);
-        List<Long> accountIds = new ArrayList<>();
-        for(Account account : accounts){
-            Long id = account.getId();
-            accountIds.add(id);
-        }
+        List<Long> accountIds = accountUtil.getUserAccountIds();
         
         //get monthly expense
         Map<String, BigDecimal> breakdown = new LinkedHashMap<>();
@@ -244,16 +245,11 @@ public class ReportService {
         return breakdown;
     }
     
-    //get expense for category for last 10 months +2 next months
+    /*********************************GET EXPENSE AND PREDICTION FOR SPECIFIC CATEGORY****************************************/
+    
     public Map<String, BigDecimal> getExpenseForCategory(Long categoryId){
         //get user accounts
-        Long userId = SecurityUtil.getUserId();        
-        List<Account> accounts = accountRepository.findByUserId(userId);
-        List<Long> accountIds = new ArrayList<>();
-        for(Account account : accounts){
-            Long id = account.getId();
-            accountIds.add(id);
-        }
+        List<Long> accountIds = accountUtil.getUserAccountIds();
         
         //get monthly expense
         Map<String, BigDecimal> breakdown = new LinkedHashMap<>();
@@ -320,7 +316,8 @@ public class ReportService {
         return breakdown; 
     }
     
-    //get amount changes vs last month
+    /*********************************GET AMOUNT CHANGES****************************************/
+    
     public List<ChangesVsLastMonthDTO> getChanges(){
         List<ChangesVsLastMonthDTO> changes = new ArrayList<>();
         //last and this month dates

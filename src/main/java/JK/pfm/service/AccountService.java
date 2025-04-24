@@ -31,7 +31,7 @@ public class AccountService {
     @Autowired
     private CategoryRepository categoryRepository;
     @Autowired
-    private TransactionRepository transactionRepository;
+    private TransactionService transactionService;
     
 
     
@@ -68,8 +68,8 @@ public class AccountService {
         //check for amount
         if (request.getAmount().compareTo(BigDecimal.ZERO) > 0) {
             Category misc = categoryRepository
-            .findByName("Misc")
-            .orElseThrow(() -> new IllegalStateException("‘Misc’ category missing"));
+            .findByName("Opening Balance")
+            .orElseThrow(() -> new IllegalStateException("category missing"));
       
             Transaction opening = new Transaction(
             LocalDate.now(),
@@ -78,7 +78,7 @@ public class AccountService {
             misc,
             "Deposit",
             "Initial account opening");
-            transactionRepository.save(opening);
+            transactionService.saveTransaction(opening);
     }       
 
         return saved;
@@ -107,14 +107,9 @@ public class AccountService {
     public Account updateAccountName(Long id, String newName) {
         //validating field
         Validations.emptyFieldValidation(newName, "Account Name");
-        //and existence in db
-        Optional<Account> accountOpt = accountRepository.findById(id);
-        if (accountOpt.isEmpty()) {
-            throw new RuntimeException("Account not found!");
-        }
-        Long userId = SecurityUtil.getUserId();
-        Account account = accountOpt.get();
-        if(!account.getUser().getId().equals(userId)){
+        Account account = accountRepository.findById(id)
+        .orElseThrow(() -> new RuntimeException("Account not found!"));
+        if(!account.getUser().getId().equals(SecurityUtil.getUserId())){
             throw new RuntimeException("Account not found!");
         }
         account.setName(newName);

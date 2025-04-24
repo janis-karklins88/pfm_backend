@@ -41,6 +41,9 @@ public class CategoryService {
     //saving category
     public Category saveCategory(String name) {
         Validations.emptyFieldValidation(name, "name");
+        if(name.equals("Savings") || name.equals("Opening Account")){
+            throw new IllegalArgumentException("Choose different name for category");
+        }
         
         User user = SecurityUtil.getUser(userRepository);
         if (userCategoryPreferenceRepository.existsByUserAndCategory_NameIgnoreCase(user, name)) {

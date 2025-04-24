@@ -22,6 +22,7 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long>,
        "WHERE t.type = :type " +
        "AND t.account.id IN :accountIds " +
        "AND t.date BETWEEN :start AND :end " +
+       "AND LOWER(t.category.name) <> 'opening balance'" +
        "AND t.description NOT IN ('Deposit to savings', 'Withdraw from savings')")
     BigDecimal sumByTypeAndDate(@Param("type") String type, 
                             @Param("accountIds") List<Long> accountIds, 
@@ -34,6 +35,7 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long>,
        "WHERE t.type = :type " +
        "AND t.account.id IN :accountIds " +
        "AND t.date BETWEEN :start AND :end " +
+       "AND LOWER(t.category.name) <> 'opening balance'" +     
        "AND t.category.id = :categoryId " +
        "AND t.description NOT IN ('Deposit to savings', 'Withdraw from savings')")
     BigDecimal sumByTypeAndDateAndCategory(@Param("type") String type, 
@@ -50,6 +52,7 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long>,
        "WHERE t.type = 'Expense' " +
        "AND t.account.id IN :accountIds " +
        "AND t.category.name <> 'Savings'" +
+       "AND LOWER(t.category.name) <> 'opening balance'" +
        "AND t.date BETWEEN :start AND :end " +
        "GROUP BY t.category.name")
     List<ExpenseByCategoryDTO> findExpensesByCategory(@Param("accountIds") List<Long> accountIds,
@@ -133,6 +136,7 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long>,
       FROM Transaction t
       WHERE t.account.user.id        = :userId
         AND LOWER(t.category.name)  <> 'savings'
+        AND LOWER(t.category.name) <> 'opening balance'
         AND t.date                 <= :cutoffDate
     """)
     BigDecimal getAccountBalanceUpTo(
