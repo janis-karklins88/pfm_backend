@@ -22,6 +22,9 @@ public class Account {
     @JoinColumn(name = "user_id")
     @JsonIgnore
     private User user;
+    
+    @Column(nullable = false, columnDefinition = "BOOLEAN NOT NULL DEFAULT TRUE")
+    private boolean active = true;
 
     
     // Constructors
@@ -62,5 +65,13 @@ public class Account {
     
     public void setAmount(BigDecimal amount){
         this.amount = amount;
+    }
+    
+    public void setIsActive(Boolean set){
+       this.active = set;
+    }
+    
+    public Boolean getIsActive(){
+        return active;
     }
 }

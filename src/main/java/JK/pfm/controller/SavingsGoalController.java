@@ -89,14 +89,14 @@ public class SavingsGoalController {
     }
     
     //add/remove saved ammount
-     @PatchMapping("/{id}/transfer-funds")
+    @PatchMapping("/{id}/transfer-funds")
     public ResponseEntity<SavingsGoal> transferFundsSavingsGoal(
             @PathVariable Long id, 
             @RequestBody SavingsFundTransferDTO request) {
         //get user id
         Long userId = SecurityUtil.getUserId();
         // Load the account
-        Optional<Account> accOpt = accountRepository.findByUserIdAndName(userId, request.getAccountName());
+        Optional<Account> accOpt = accountRepository.findByUserIdAndNameAndActiveTrue(userId, request.getAccountName());
 
         SavingsGoal updatedGoal = savingsGoalService.transferFunds(id, request.getAmount(), request.getType(), accOpt);
         return ResponseEntity.ok(updatedGoal);

@@ -47,11 +47,8 @@ public class TransactionController {
         
         // Lookup account belonging to the authenticated user
         Validations.emptyFieldValidation(request.getAccountName(), "Account");
-        Optional<Account> accOpt = accountRepository.findByUserIdAndName(userId, request.getAccountName());
-        if (accOpt.isEmpty()){
-            throw new RuntimeException("Incorrect account!");
-        }
-        Account account = accOpt.get();
+        Account account = accountRepository.findByUserIdAndNameAndActiveTrue(userId, request.getAccountName())
+        .orElseThrow(() -> new RuntimeException("Account not found!"));
         
         // Create and save the transaction
         Transaction transaction = new Transaction(

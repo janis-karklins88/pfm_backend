@@ -1,81 +1,135 @@
 package JK.pfm.repository;
 
+import JK.pfm.dto.ExpenseByAccountDTO;
 import JK.pfm.dto.ExpenseByCategoryDTO;
 import JK.pfm.model.Transaction;
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.List;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
-import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 
-public interface TransactionRepository extends JpaRepository<Transaction, Long>, JpaSpecificationExecutor<Transaction> {
-    
+public interface TransactionRepository
+    extends JpaRepository<Transaction, Long>, JpaSpecificationExecutor<Transaction> {
+
     List<Transaction> findByCategoryId(Long categoryId);
-    
+
     List<Transaction> findTop5ByAccountIdInOrderByIdDesc(List<Long> accountIds);
 
-    //total expense and income, ignoring transactions for savings
-    @Query("SELECT COALESCE(SUM(t.amount), 0) " +
-       "FROM Transaction t " +
-       "WHERE t.type = :type " +
-       "AND t.account.id IN :accountIds " +
-       "AND t.date BETWEEN :start AND :end " +
-       "AND LOWER(t.category.name) <> 'opening balance'" +
-       "AND t.description NOT IN ('Deposit to savings', 'Withdraw from savings')")
-    BigDecimal sumByTypeAndDate(@Param("type") String type, 
-                            @Param("accountIds") List<Long> accountIds, 
-                            @Param("start") LocalDate start, 
-                            @Param("end") LocalDate end);
+    // total expense and income, ignoring Savings, Opening Balance, Fund Transfer
+    @Query("""
+      SELECT COALESCE(SUM(t.amount), 0)
+      FROM Transaction t
+      WHERE t.type            = :type
+        AND t.account.id      IN :accountIds
+        AND t.date            BETWEEN :start AND :end
+        AND LOWER(t.category.name) NOT IN (
+            'savings', 'opening balance', 'fund transfer'
+        )
+        AND t.description NOT IN (
+            'Deposit to savings', 'Withdraw from savings'
+        )
+    """)
+    BigDecimal sumByTypeAndDate(
+        @Param("type")       String type,
+        @Param("accountIds") List<Long> accountIds,
+        @Param("start")      LocalDate start,
+        @Param("end")        LocalDate end
+    );
+
+    // total category expense for a specific user category, still ignoring system cats
+    @Query("""
+      SELECT COALESCE(SUM(t.amount), 0)
+      FROM Transaction t
+      WHERE t.type            = :type
+        AND t.account.id      IN :accountIds
+        AND t.date            BETWEEN :start AND :end
+        AND LOWER(t.category.name) NOT IN (
+            'savings', 'opening balance', 'fund transfer'
+        )
+        AND t.category.id     = :categoryId
+        AND t.description NOT IN (
+            'Deposit to savings', 'Withdraw from savings'
+        )
+    """)
+    BigDecimal sumByTypeAndDateAndCategory(
+        @Param("type")       String type,
+        @Param("accountIds") List<Long> accountIds,
+        @Param("start")      LocalDate start,
+        @Param("end")        LocalDate end,
+        @Param("categoryId") Long categoryId
+    );
+
+    // expense-by-category breakdown, excluding system categories
+    @Query("""
+      SELECT new JK.pfm.dto.ExpenseByCategoryDTO(
+        t.category.name,
+        COALESCE(SUM(t.amount), 0)
+      )
+      FROM Transaction t
+      WHERE t.type = 'Expense'
+        AND t.account.id IN :accountIds
+        AND LOWER(t.category.name) NOT IN (
+            'savings', 'opening balance', 'fund transfer'
+        )
+        AND t.date BETWEEN :start AND :end
+      GROUP BY t.category.name
+    """)
+    List<ExpenseByCategoryDTO> findExpensesByCategory(
+        @Param("accountIds") List<Long> accountIds,
+        @Param("start")      LocalDate start,
+        @Param("end")        LocalDate end
+    );
     
-    //total category expense for last 10 + current month
-    @Query("SELECT COALESCE(SUM(t.amount), 0) " +
-       "FROM Transaction t " +
-       "WHERE t.type = :type " +
-       "AND t.account.id IN :accountIds " +
-       "AND t.date BETWEEN :start AND :end " +
-       "AND LOWER(t.category.name) <> 'opening balance'" +     
-       "AND t.category.id = :categoryId " +
-       "AND t.description NOT IN ('Deposit to savings', 'Withdraw from savings')")
-    BigDecimal sumByTypeAndDateAndCategory(@Param("type") String type, 
-                                       @Param("accountIds") List<Long> accountIds, 
-                                       @Param("start") LocalDate start, 
-                                       @Param("end") LocalDate end,
-                                       @Param("categoryId") Long categoryId);
+     /**
+     * Net “Expense” per account over the given period,
+     * excluding system categories (Savings, Opening Balance, Fund Transfer).
+     */
+    @Query("""
+      SELECT new JK.pfm.dto.ExpenseByAccountDTO(
+        t.account.name,
+        COALESCE(SUM(t.amount), 0)
+      )
+      FROM Transaction t
+      WHERE t.type = 'Expense'
+        AND t.account.id IN :accountIds
+        AND LOWER(t.category.name) NOT IN (
+            'savings', 'opening balance', 'fund transfer'
+        )
+        AND t.date BETWEEN :start AND :end
+      GROUP BY t.account.name
+    """)
+    List<ExpenseByAccountDTO> findExpensesByAccount(
+        @Param("accountIds") List<Long> accountIds,
+        @Param("start")      LocalDate start,
+        @Param("end")        LocalDate end
+    );
 
 
-    
-    //query for getting expenses by category breakdown
-    @Query("SELECT new JK.pfm.dto.ExpenseByCategoryDTO(t.category.name, COALESCE(SUM(t.amount), 0)) " +
-       "FROM Transaction t " +
-       "WHERE t.type = 'Expense' " +
-       "AND t.account.id IN :accountIds " +
-       "AND t.category.name <> 'Savings'" +
-       "AND LOWER(t.category.name) <> 'opening balance'" +
-       "AND t.date BETWEEN :start AND :end " +
-       "GROUP BY t.category.name")
-    List<ExpenseByCategoryDTO> findExpensesByCategory(@Param("accountIds") List<Long> accountIds,
-                                      @Param("start") LocalDate start,
-                                      @Param("end") LocalDate end);
+    // daily trends (no change needed here)
+    @Query("""
+      SELECT t.date, t.type, COALESCE(SUM(t.amount), 0)
+      FROM Transaction t
+      WHERE t.date BETWEEN :start AND :end
+      GROUP BY t.date, t.type
+      ORDER BY t.date
+    """)
+    List<Object[]> getDailyTrends(
+        @Param("start") LocalDate start,
+        @Param("end")   LocalDate end
+    );
 
-    
-    //query for grouping transaction by date and type over time, for making trends
-    @Query("SELECT t.date, t.type, COALESCE(SUM(t.amount), 0) " +
-           "FROM Transaction t " +
-           "WHERE t.date BETWEEN :start AND :end " +
-           "GROUP BY t.date, t.type " +
-           "ORDER BY t.date")
-    List<Object[]> getDailyTrends(@Param("start") LocalDate start,
-                                  @Param("end") LocalDate end);
-    
-    //finding transactions between dates
     List<Transaction> findByDateBetween(LocalDate startDate, LocalDate endDate);
-    
-    //check if date range has any transactions
-    boolean existsByAccountIdInAndDateBetween(List<Long> accountIds, LocalDate start, LocalDate end);
-    
-    //get net savings balance for dates
+
+    boolean existsByAccountIdInAndDateBetween(
+        List<Long> accountIds,
+        LocalDate start,
+        LocalDate end
+    );
+
+    // net savings balance (unchanged)
     @Query("""
       SELECT COALESCE(
         SUM(
@@ -86,8 +140,7 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long>,
           END
         ), 0)
       FROM Transaction t
-      WHERE 
-        t.account.id IN :accountIds
+      WHERE t.account.id IN :accountIds
         AND LOWER(t.category.name) = 'savings'
         AND t.date BETWEEN :start AND :end
     """)
@@ -96,9 +149,8 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long>,
         @Param("start")      LocalDate start,
         @Param("end")        LocalDate end
     );
-    
-    //get last month saving goal balances
-    // in your repository
+
+    // get cumulative savings up to cutoff (unchanged)
     @Query("""
       SELECT COALESCE(
         SUM(
@@ -109,40 +161,34 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long>,
           END
         ), 0)
       FROM Transaction t
-      WHERE t.account.user.id = :userId
-        AND t.category.name    = 'Savings'
-        AND t.date            <= :cutoffDate
+      WHERE t.account.user.id   = :userId
+        AND t.category.name      = 'Savings'
+        AND t.date              <= :cutoffDate
     """)
     BigDecimal getSavingsBalanceUpTo(
-      @Param("userId")     Long userId,
-      @Param("cutoffDate") LocalDate cutoffDate
+        @Param("userId")     Long userId,
+        @Param("cutoffDate") LocalDate cutoffDate
     );
-    
-    //get last month total blance
-    /**
-     * Cumulative account balance (summing deposits minus withdrawals)
-     * for all accounts of a user up to and including the given cutoff date,
-     * but ignoring any transactions in the “Savings” category.
-     */
+
+    // cumulative account balance, ignoring system categories
     @Query("""
       SELECT COALESCE(
         SUM(
           CASE
-            WHEN t.type = 'Deposit'    THEN t.amount
+            WHEN t.type = 'Deposit' THEN t.amount
             WHEN t.type = 'Expense' THEN -t.amount
             ELSE 0
           END
         ), 0)
       FROM Transaction t
-      WHERE t.account.user.id        = :userId
-        AND LOWER(t.category.name)  <> 'savings'
-        AND LOWER(t.category.name) <> 'opening balance'
-        AND t.date                 <= :cutoffDate
+      WHERE t.account.user.id         = :userId
+        AND LOWER(t.category.name) NOT IN (
+            'savings', 'opening balance', 'fund transfer'
+        )
+        AND t.date                   <= :cutoffDate
     """)
     BigDecimal getAccountBalanceUpTo(
-      @Param("userId")     Long userId,
-      @Param("cutoffDate") LocalDate cutoffDate
+        @Param("userId")     Long userId,
+        @Param("cutoffDate") LocalDate cutoffDate
     );
-    
-    
 }

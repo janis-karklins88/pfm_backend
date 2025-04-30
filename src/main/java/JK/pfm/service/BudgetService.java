@@ -32,8 +32,7 @@ public class BudgetService {
     private BudgetRepository budgetRepository;
     @Autowired
     private AccountRepository accountRepository;
-    @Autowired
-    private UserRepository userRepository;
+
     
     //getting all budgets for user
     public List<Budget> getAllBudgets(Long userId, LocalDate filterStart, LocalDate filterEnd) {
@@ -119,7 +118,7 @@ public class BudgetService {
             throw new RuntimeException("Budget not found!");
         }
         //get accounts for user
-        List<Account> accounts = accountRepository.findByUserId(userId);
+        List<Account> accounts = accountRepository.findByUserIdAndActiveTrue(userId);
         List<Long> accountIds = new ArrayList<>();
         for(Account account : accounts){
             Long accId = account.getId();
@@ -162,6 +161,7 @@ public class BudgetService {
                 current.getCategory(),
                 owner
             );
+            next.setMonthly(true);
             budgetRepository.save(next);
         }
     }

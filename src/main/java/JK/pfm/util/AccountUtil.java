@@ -22,7 +22,7 @@ public class AccountUtil {
     public List<Long> getUserAccountIds() {
         Long userId = SecurityUtil.getUserId();
         return accountRepository
-            .findByUserId(userId)               // returns List<Account> or empty list
+            .findByUserIdAndActiveTrue(userId)               // returns List<Account> or empty list
             .stream()
             .map(Account::getId)
             .collect(Collectors.toList());      // empty list if source is empty

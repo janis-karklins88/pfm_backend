@@ -9,6 +9,7 @@ import JK.pfm.repository.CategoryRepository;
 import JK.pfm.repository.SavingsGoalRepository;
 import JK.pfm.repository.TransactionRepository;
 import JK.pfm.specifications.SavingsGoalSpecification;
+import JK.pfm.util.AccountUtil;
 import JK.pfm.util.SecurityUtil;
 import JK.pfm.util.Validations;
 import jakarta.transaction.Transactional;
@@ -36,8 +37,8 @@ public class SavingsGoalService {
     private CategoryRepository categoryRepository;
     @Autowired
     private TransactionService transactionService;
-    @Autowired
-    private AccountRepository accountRepository;
+    @Autowired 
+    private AccountUtil accountUtil;
 
     //getting all saving goals
     public List<SavingsGoal> getAllSavingsGoals(Long userId) {
@@ -131,7 +132,7 @@ public class SavingsGoalService {
             if (savingsGoal.getCurrentAmount().compareTo(amount) >= 0) {
             //account deposit transaction
             String description = "Withdraw from savings";
-            Optional<Category> catOpt = categoryRepository.findByName("Savings");
+            Optional<Category> catOpt = categoryRepository.findByName("Fund Transfer");
             Category category = catOpt.get();
             Transaction transaction = new Transaction(LocalDate.now(), amount, account, category, "Deposit", description);
             transactionService.saveTransaction(transaction);
@@ -145,7 +146,7 @@ public class SavingsGoalService {
             if (account.getAmount().compareTo(amount) >= 0) {
             //account expense transaction
             String description = "Deposit to savings";
-            Optional<Category> catOpt = categoryRepository.findByName("Savings");
+            Optional<Category> catOpt = categoryRepository.findByName("Fund Transfer");
             Category category = catOpt.get();
             Transaction transaction = new Transaction(LocalDate.now(), amount, account, category, "Expense", description);
             transactionService.saveTransaction(transaction);
@@ -162,14 +163,7 @@ public class SavingsGoalService {
     //get net savings monthly balance
     public Map<String, BigDecimal> getNetMonthlyBalance(){
         //get user accounts
-        Long userId = SecurityUtil.getUserId();        
-        List<Account> accounts = accountRepository.findByUserId(userId);
-        List<Long> accountIds = new ArrayList<>();
-        for(Account account : accounts){
-            Long id = account.getId();
-            accountIds.add(id);
-        }
-        
+        List<Long> accountIds = accountUtil.getUserAccountIds();
         //
         Map<String, BigDecimal> breakdown = new LinkedHashMap<>();
         LocalDate today = LocalDate.now();

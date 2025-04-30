@@ -6,6 +6,7 @@ import JK.pfm.dto.BudgetVsActualDTO;
 import JK.pfm.dto.CashFlowDTO;
 import JK.pfm.dto.ChangesVsLastMonthDTO;
 import JK.pfm.dto.DailyTrend;
+import JK.pfm.dto.ExpenseByAccountDTO;
 import JK.pfm.dto.ExpenseByCategoryDTO;
 import JK.pfm.service.ReportService;
 import JK.pfm.util.SecurityUtil;
@@ -58,6 +59,16 @@ public class ReportController {
             @RequestParam("end") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate end) {
         
         List<ExpenseByCategoryDTO> breakdown = reportService.getSpendingByCategory(start, end);
+        return ResponseEntity.ok(breakdown);
+    }
+    
+    //get expense breakdown by account 
+    @GetMapping("/spending-by-account")
+    public ResponseEntity<List<ExpenseByAccountDTO>> getSpendingByAccount(
+            @RequestParam("start") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate start,
+            @RequestParam("end") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate end) {
+        
+        List<ExpenseByAccountDTO> breakdown = reportService.getSpendingByAccount(start, end);
         return ResponseEntity.ok(breakdown);
     }
     

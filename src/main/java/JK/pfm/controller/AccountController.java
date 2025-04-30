@@ -1,9 +1,8 @@
 package JK.pfm.controller;
 
 import JK.pfm.dto.AccountCreationRequest;
+import JK.pfm.dto.SavingsFundTransferDTO;
 import JK.pfm.model.Account;
-import JK.pfm.model.User;
-import JK.pfm.repository.UserRepository;
 import JK.pfm.service.AccountService;
 import JK.pfm.util.SecurityUtil;
 import java.math.BigDecimal;
@@ -20,8 +19,7 @@ public class AccountController {
     @Autowired
     private AccountService accountService;
     
-    @Autowired
-    private UserRepository userRepository;
+
     
     // Get all accounts for the authenticated user
     @GetMapping
@@ -32,7 +30,7 @@ public class AccountController {
     }
     
     // Get total account balance for user
-    @GetMapping("accounts-balance")
+    @GetMapping("/total-balance")
     public ResponseEntity<BigDecimal> getTotalBalance() {
         BigDecimal sum = accountService.getTotalBalance();
         return ResponseEntity.ok(sum);
@@ -58,6 +56,17 @@ public class AccountController {
         String newName = request.get("name");
         Account updatedAccount = accountService.updateAccountName(id, newName);
         return ResponseEntity.ok(updatedAccount);
+    }
+    
+    //transfer funds
+    @PatchMapping("/{id}/transfer-funds")
+    public ResponseEntity<Account> transferAccountFunds(
+            @PathVariable Long id, 
+            @RequestBody SavingsFundTransferDTO request) {
+        
+
+        Account account = accountService.transferAccountFunds(id, request);
+        return ResponseEntity.ok(account);
     }
     
 

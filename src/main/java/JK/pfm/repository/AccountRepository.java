@@ -12,21 +12,28 @@ import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
-public interface AccountRepository extends JpaRepository<Account, Long>, JpaSpecificationExecutor<Account> {
-    @Query("SELECT COALESCE(SUM(a.amount), 0) FROM Account a WHERE a.user.id = :userId")
+public interface AccountRepository extends JpaRepository<Account, Long> {
+
+    /** Only sum balances of active accounts */
+    @Query("""
+      SELECT COALESCE(SUM(a.amount), 0)
+      FROM Account a
+      WHERE a.user.id = :userId
+        AND a.active = true
+    """)
     BigDecimal getTotalBalanceByUserId(@Param("userId") Long userId);
-    
-    Optional<Account> findByName(String name);
-    
-    Optional<Account> findByUserIdAndName(Long userId, String name);
-    
-    Optional<Account> findByUserIdAndId(Long userId, Long accountId);
 
-    
-    List<Account> findByUserId(Long userId);
-    
-    
+    /** Lookup by name but only if the account is still active */
+    Optional<Account> findByNameAndActiveTrue(String name);
 
-    
+    /** Scoped by user and name, only active ones */
+    Optional<Account> findByUserIdAndNameAndActiveTrue(Long userId, String name);
+
+    /** Scoped by user and id, only active ones */
+    Optional<Account> findByUserIdAndIdAndActiveTrue(Long userId, Long accountId);
+
+    /** All active accounts for this user */
+    List<Account> findByUserIdAndActiveTrue(Long userId);
 }
+
 

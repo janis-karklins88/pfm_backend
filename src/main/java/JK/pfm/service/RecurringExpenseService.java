@@ -80,7 +80,7 @@ public class RecurringExpenseService {
         Long userId = SecurityUtil.getUserId();
         LocalDate todaysDate = LocalDate.now();
         
-                List<Account> accounts = accountRepository.findByUserId(userId);
+                List<Account> accounts = accountRepository.findByUserIdAndActiveTrue(userId);
         List<Long> accountIds = new ArrayList<>();
         for(Account acc : accounts){
             Long id = acc.getId();
@@ -132,7 +132,7 @@ public class RecurringExpenseService {
     //change account
     public RecurringExpense updateRecurringExpenseAccount(Long id, Long accountName){
         Long userId = SecurityUtil.getUserId();
-        Account account = accountRepository.findByUserIdAndId(userId, accountName).orElseThrow(() -> new RuntimeException("Incorrect account!"));
+        Account account = accountRepository.findByUserIdAndIdAndActiveTrue(userId, accountName).orElseThrow(() -> new RuntimeException("Incorrect account!"));
         RecurringExpense expense = recurringExpenseRepository.findById(id).orElseThrow(() -> new RuntimeException("Incorrect payment!"));
         
         if (!expense.getAccount().getUser().getId().equals(userId)) {

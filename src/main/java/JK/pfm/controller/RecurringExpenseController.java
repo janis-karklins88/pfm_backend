@@ -17,7 +17,6 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 
@@ -57,7 +56,7 @@ public class RecurringExpenseController {
         Long userId = SecurityUtil.getUserId();
        
         //Lookup account
-        Account account = accountRepository.findByUserIdAndName(userId, request.getAccountName())
+        Account account = accountRepository.findByUserIdAndNameAndActiveTrue(userId, request.getAccountName())
         .orElseThrow(() -> new RuntimeException("Account not found!"));
         
 

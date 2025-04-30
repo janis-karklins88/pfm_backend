@@ -4,12 +4,12 @@ import JK.pfm.dto.BalanceBreakdownDTO;
 import JK.pfm.dto.CashFlowDTO;
 import JK.pfm.dto.ChangesVsLastMonthDTO;
 import JK.pfm.dto.DailyTrend;
+import JK.pfm.dto.ExpenseByAccountDTO;
 import JK.pfm.dto.ExpenseByCategoryDTO;
 import JK.pfm.model.Account;
 import JK.pfm.repository.AccountRepository;
 import JK.pfm.repository.SavingsGoalRepository;
 import JK.pfm.repository.TransactionRepository;
-import JK.pfm.util.AccountSpecifications;
 import JK.pfm.util.AccountUtil;
 import JK.pfm.util.SecurityUtil;
 import JK.pfm.util.Validations;
@@ -97,6 +97,31 @@ public class ReportService {
         return transactionRepository.findExpensesByCategory(accountIds, start, end);
     }
     
+    
+    /*********************************EXPENSE BREAKDOWN BY Account****************************************/
+    /**
+    * Retrieves the total expenses grouped by accounts for the current user
+    * between the given start and end dates.
+    *
+    * @param start the first date (inclusive) of the period to query
+    * @param end   the last date (inclusive) of the period to query
+    * @return      a List of ExpenseByAccountDTO, one entry per account;
+    *              returns an empty list if the user has no accounts
+    */
+    public List<ExpenseByAccountDTO> getSpendingByAccount(LocalDate start, LocalDate end) {
+        
+        List<Long> accountIds = accountUtil.getUserAccountIds();
+        // If no accounts exist for the user, return an empty map
+        if (accountIds.isEmpty()) {
+            return Collections.emptyList();
+        }
+        
+        return transactionRepository.findExpensesByAccount(accountIds, start, end);
+    }
+    
+    
+    
+    
     /*********************************GET DAILY TRENDS****************************************/
     
     public List<DailyTrend> getDailyTrends(LocalDate start, LocalDate end) {
@@ -161,7 +186,7 @@ public class ReportService {
     
     public List<BalanceBreakdownDTO> getBalanceBreakdown(){
         Long userId = SecurityUtil.getUserId();
-        List<Account> accounts = accountRepository.findAll(AccountSpecifications.belongsToUser(userId));
+        List<Account> accounts = accountRepository.findByUserIdAndActiveTrue(userId);
         List<BalanceBreakdownDTO> breakdown = new ArrayList<>();
         
         for(Account acc : accounts){
@@ -421,7 +446,22 @@ public class ReportService {
         
         changes.add(new ChangesVsLastMonthDTO("totalBalance", totalBalanceChange));
         
+        /***************************Account Balance**********************************/
+        BigDecimal totalAccountBalanceChange;
+        BigDecimal totalLastMonthsAccountBalance = transactionRepository.getAccountBalanceUpTo(userId, cutoffDate);
+        //calcs
+        if (totalLastMonthsAccountBalance.compareTo(BigDecimal.ZERO) == 0) {
+        totalAccountBalanceChange = totalAccountBalance.compareTo(BigDecimal.ZERO) == 0
+            ? BigDecimal.ZERO
+            : BigDecimal.valueOf(100);
+        } else {
+        totalAccountBalanceChange = totalAccountBalance
+            .subtract(totalLastMonthsAccountBalance)
+            .multiply(BigDecimal.valueOf(100))
+            .divide(totalLastMonthsAccountBalance, 0, RoundingMode.HALF_UP);
+        }
         
+        changes.add(new ChangesVsLastMonthDTO("totalAccountBalance", totalAccountBalanceChange));
         
         return changes;
     }
