@@ -38,6 +38,7 @@ public class RecurringExpenseService {
     
     // Get all recurring expenses
     public List<RecurringExpense> getRecurringExpensesByFilters(LocalDate startDate, LocalDate endDate, Long categoryId, Long accountId, Long userId) {
+        Validations.checkStartEndDate(startDate, endDate);
         Specification<RecurringExpense> spec = Specification.where(null);
 
     // Build the specification using our reusable methods

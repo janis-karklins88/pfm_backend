@@ -56,6 +56,7 @@ public class ReportService {
     public Map<String, BigDecimal> getSpendingAndIncomeSummary(LocalDate start, LocalDate end) {
         Validations.checkDate(start);
         Validations.checkDate(end);
+        Validations.checkStartEndDate(start, end);
         //get user accounts    
         List<Long> accountIds = accountUtil.getUserAccountIds();
         
@@ -87,7 +88,7 @@ public class ReportService {
     *              returns an empty list if the user has no accounts
     */
     public List<ExpenseByCategoryDTO> getSpendingByCategory(LocalDate start, LocalDate end) {
-        
+        Validations.checkStartEndDate(start, end);
         List<Long> accountIds = accountUtil.getUserAccountIds();
         // If no accounts exist for the user, return an empty map
         if (accountIds.isEmpty()) {
@@ -109,7 +110,7 @@ public class ReportService {
     *              returns an empty list if the user has no accounts
     */
     public List<ExpenseByAccountDTO> getSpendingByAccount(LocalDate start, LocalDate end) {
-        
+        Validations.checkStartEndDate(start, end);
         List<Long> accountIds = accountUtil.getUserAccountIds();
         // If no accounts exist for the user, return an empty map
         if (accountIds.isEmpty()) {
@@ -127,7 +128,7 @@ public class ReportService {
     public List<DailyTrend> getDailyTrends(LocalDate start, LocalDate end) {
         Validations.checkDate(start);
         Validations.checkDate(end);
-        
+        Validations.checkStartEndDate(start, end);
         // Retrieve daily transaction data grouped by date and type.
         List<Object[]> results = transactionRepository.getDailyTrends(start, end);
         Map<LocalDate, DailyTrend> trendMap = new HashMap<>();
@@ -341,129 +342,75 @@ public class ReportService {
         return breakdown; 
     }
     
-    /*********************************GET AMOUNT CHANGES****************************************/
-    
-    public List<ChangesVsLastMonthDTO> getChanges(){
+        /**
+    * Calculates month-over-month percentage changes for:
+    *   • Income
+    *   • Expense
+    *   • Savings balance
+    *   • Total balance (accounts + savings)
+    *   • Account balance (accounts only)
+    *
+    * @return a list of ChangesVsLastMonthDTO with whole-number percentage changes
+    */
+    public List<ChangesVsLastMonthDTO> getChanges() {
         List<ChangesVsLastMonthDTO> changes = new ArrayList<>();
-        //last and this month dates
-        LocalDate today = LocalDate.now();
-        LocalDate lastMonth = today.minusMonths(1);
-        LocalDate startOfLastMonth = lastMonth.withDayOfMonth(1);
-        LocalDate endOfLastMonth = lastMonth.withDayOfMonth(lastMonth.lengthOfMonth());
-        LocalDate startOfThisMonth = today.withDayOfMonth(1);
-        LocalDate endOfThisMonth = today.withDayOfMonth(today.lengthOfMonth());
-        
-        /***************************Income and Expense**********************************/
-        Map<String, BigDecimal> thisMonthSummary = getSpendingAndIncomeSummary(startOfThisMonth, endOfThisMonth);
-        Map<String, BigDecimal> lastMonthSummary = getSpendingAndIncomeSummary(startOfLastMonth, endOfLastMonth);
-        
-        //income change
-        BigDecimal thisIncome = thisMonthSummary
-        .getOrDefault("totalIncome", BigDecimal.ZERO);
-        BigDecimal lastIncome = lastMonthSummary
-        .getOrDefault("totalIncome", BigDecimal.ZERO);
-        BigDecimal incomeChange;
-        
-        //calculation        
-        if (lastIncome.compareTo(BigDecimal.ZERO) == 0) {
-        // define 0→0 as 0%, and 0→nonzero as 100%
-        incomeChange = thisIncome.compareTo(BigDecimal.ZERO) == 0
-            ? BigDecimal.ZERO
-            : BigDecimal.valueOf(100);
-        } else {
-        incomeChange = thisIncome
-            .subtract(lastIncome)                            // difference
-            .multiply(BigDecimal.valueOf(100))               // ×100%
-            .divide(lastIncome, 0, RoundingMode.HALF_UP);    // 2 decimal places
-        }
-        
-        //expense change
-        BigDecimal thisExpense = thisMonthSummary
-        .getOrDefault("totalSpending", BigDecimal.ZERO);
-        BigDecimal lastExpense = lastMonthSummary
-        .getOrDefault("totalSpending", BigDecimal.ZERO);
-        BigDecimal expenseChange;
-        
-        //calculation
-        if (lastExpense.compareTo(BigDecimal.ZERO) == 0) {
-        expenseChange = thisExpense.compareTo(BigDecimal.ZERO) == 0
-            ? BigDecimal.ZERO
-            : BigDecimal.valueOf(100);
-        } else {
-        expenseChange = thisExpense
-            .subtract(lastExpense)
-            .multiply(BigDecimal.valueOf(100))
-            .divide(lastExpense, 0, RoundingMode.HALF_UP);
-        }
-        
-        //add to list        
-        ChangesVsLastMonthDTO income = new ChangesVsLastMonthDTO("Income", incomeChange);
-        changes.add(income);
-        ChangesVsLastMonthDTO expense = new ChangesVsLastMonthDTO("Expense", expenseChange);
-        changes.add(expense);
-        
-        /***************************Savings**********************************/
-                
-        Long userId = SecurityUtil.getUserId();
-        BigDecimal current = savingsGoalRepository.getTotalBalanceByUserId(userId);
-        BigDecimal previous = savingsGoalRepository.getLastMonthBalanceByUserId(userId);
 
-        BigDecimal savingsChange;
-        if (previous.compareTo(BigDecimal.ZERO) == 0) {
-        savingsChange = current.compareTo(BigDecimal.ZERO) == 0
-            ? BigDecimal.ZERO
-            : BigDecimal.valueOf(100);
-        } else {
-        savingsChange = current
-            .subtract(previous)
-            .multiply(BigDecimal.valueOf(100))
-            .divide(previous, 0, RoundingMode.HALF_UP);
-        }
-        
-        changes.add(new ChangesVsLastMonthDTO("Savings", savingsChange));
-        
-        /***************************Total Balance**********************************/
-        // compute the cutoff (last-day-of-previous-month)
-        LocalDate cutoffDate = LocalDate.now()
-        .minusMonths(1)
-        .with(TemporalAdjusters.lastDayOfMonth());
-        
-        BigDecimal totalAccountBalance = getTotalUserBalance();
-        BigDecimal totalLastMonthsBalance = transactionRepository.getAccountBalanceUpTo(userId, cutoffDate).add(previous);
-        
-        BigDecimal totalBalanceChange;
-        //calcs
-        if (totalLastMonthsBalance.compareTo(BigDecimal.ZERO) == 0) {
-        totalBalanceChange = totalAccountBalance.compareTo(BigDecimal.ZERO) == 0
-            ? BigDecimal.ZERO
-            : BigDecimal.valueOf(100);
-        } else {
-        totalBalanceChange = totalAccountBalance
-            .subtract(totalLastMonthsBalance)
-            .multiply(BigDecimal.valueOf(100))
-            .divide(totalLastMonthsBalance, 0, RoundingMode.HALF_UP);
-        }
-        
-        changes.add(new ChangesVsLastMonthDTO("totalBalance", totalBalanceChange));
-        
-        /***************************Account Balance**********************************/
-        BigDecimal totalAccountBalanceChange;
-        BigDecimal totalLastMonthsAccountBalance = transactionRepository.getAccountBalanceUpTo(userId, cutoffDate);
-        //calcs
-        if (totalLastMonthsAccountBalance.compareTo(BigDecimal.ZERO) == 0) {
-        totalAccountBalanceChange = totalAccountBalance.compareTo(BigDecimal.ZERO) == 0
-            ? BigDecimal.ZERO
-            : BigDecimal.valueOf(100);
-        } else {
-        totalAccountBalanceChange = totalAccountBalance
-            .subtract(totalLastMonthsAccountBalance)
-            .multiply(BigDecimal.valueOf(100))
-            .divide(totalLastMonthsAccountBalance, 0, RoundingMode.HALF_UP);
-        }
-        
-        changes.add(new ChangesVsLastMonthDTO("totalAccountBalance", totalAccountBalanceChange));
-        
+        // 1) Compute date ranges
+        LocalDate today           = LocalDate.now();
+        LocalDate lastMonth       = today.minusMonths(1);
+        LocalDate startLastMonth  = lastMonth.withDayOfMonth(1);
+        LocalDate endLastMonth    = lastMonth.withDayOfMonth(lastMonth.lengthOfMonth());
+        LocalDate startThisMonth  = today.withDayOfMonth(1);
+        LocalDate endThisMonth    = today.withDayOfMonth(today.lengthOfMonth());
+
+        // 2) Income & Expense
+        Map<String, BigDecimal> thisM = getSpendingAndIncomeSummary(startThisMonth, endThisMonth);
+        Map<String, BigDecimal> lastM = getSpendingAndIncomeSummary(startLastMonth, endLastMonth);
+
+        BigDecimal thisIncome  = thisM.getOrDefault("totalIncome",  BigDecimal.ZERO);
+        BigDecimal lastIncome  = lastM.getOrDefault("totalIncome",  BigDecimal.ZERO);
+        BigDecimal incomePct   = calculatePercentChange(thisIncome, lastIncome);
+
+        BigDecimal thisExpense = thisM.getOrDefault("totalSpending", BigDecimal.ZERO);
+        BigDecimal lastExpense = lastM.getOrDefault("totalSpending", BigDecimal.ZERO);
+        BigDecimal expensePct  = calculatePercentChange(thisExpense, lastExpense);
+
+        changes.add(new ChangesVsLastMonthDTO("Income",  incomePct));
+        changes.add(new ChangesVsLastMonthDTO("Expense", expensePct));
+
+        // 3) Savings
+        Long userId            = SecurityUtil.getUserId();
+        BigDecimal currentSav  = savingsGoalRepository.getTotalBalanceByUserId(userId);
+        BigDecimal lastSav     = savingsGoalRepository.getLastMonthBalanceByUserId(userId);
+        BigDecimal savingsPct  = calculatePercentChange(currentSav, lastSav);
+        changes.add(new ChangesVsLastMonthDTO("Savings", savingsPct));
+
+        // 4) Total Balance = accounts + savings
+        BigDecimal currentTotal   = getTotalUserBalance();
+        BigDecimal lastAccounts   = transactionRepository.getAccountBalanceUpTo(userId, endLastMonth);
+        BigDecimal lastTotal      = lastAccounts.add(lastSav);
+        BigDecimal totalPct       = calculatePercentChange(currentTotal, lastTotal);
+        changes.add(new ChangesVsLastMonthDTO("totalBalance", totalPct));
+
+        // 5) Account Balance only
+        BigDecimal accountPct     = calculatePercentChange(currentTotal, lastAccounts);
+        changes.add(new ChangesVsLastMonthDTO("accountBalance", accountPct));
+
         return changes;
+}
+
+    //helper method for calculating changes in percentages
+    private BigDecimal calculatePercentChange(BigDecimal current, BigDecimal previous) {
+     if (previous.compareTo(BigDecimal.ZERO) == 0) {
+            return current.compareTo(BigDecimal.ZERO) == 0
+                ? BigDecimal.ZERO
+                : BigDecimal.valueOf(100);
+        }
+        BigDecimal diff = current.subtract(previous);
+        return diff
+            .multiply(BigDecimal.valueOf(100))
+            .divide(previous.abs(), 0, RoundingMode.HALF_UP);
     }
+
 }
 

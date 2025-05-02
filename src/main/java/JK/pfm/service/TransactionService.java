@@ -102,6 +102,7 @@ public class TransactionService {
         (LocalDate startDate, LocalDate endDate, Long categoryId, Long accountId,  Long userId, String type) {
         Specification<Transaction> spec = Specification.where(null);
 
+        Validations.checkStartEndDate(startDate, endDate);
     // Build the specification using our reusable methods
         if (startDate != null && endDate != null) {
             spec = spec.and(TransactionSpecifications.dateBetween(startDate, endDate));

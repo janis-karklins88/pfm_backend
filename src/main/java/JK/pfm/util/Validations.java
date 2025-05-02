@@ -2,6 +2,7 @@
 package JK.pfm.util;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.temporal.TemporalAccessor;
 
 
@@ -42,6 +43,12 @@ public class Validations {
         }
     }
    
+    //date validation, end date is after start date
+    public static void checkStartEndDate(LocalDate start, LocalDate end){
+        if(start != null && end != null && start.isAfter(end)){
+            throw new IllegalArgumentException("Start date must be before end date");
+        }
+    }
 
     
 }

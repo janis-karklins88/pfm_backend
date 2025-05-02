@@ -16,6 +16,7 @@ import java.time.LocalDate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import java.util.List;
+import java.util.Optional;
 
 
 @Service
@@ -110,12 +111,20 @@ public class AccountService {
     @Transactional
     public Account updateAccountName(Long id, String newName) {
         //validating field
+        Long userId = SecurityUtil.getUserId();
         Validations.emptyFieldValidation(newName, "Account Name");
         Account account = accountRepository.findById(id)
         .orElseThrow(() -> new RuntimeException("Account not found!"));
-        if(!account.getUser().getId().equals(SecurityUtil.getUserId())){
+        if(!account.getUser().getId().equals(userId)){
             throw new RuntimeException("Account not found!");
         }
+        
+        accountRepository.findByUserIdAndNameAndActiveTrue(userId, newName)
+        .ifPresent(a -> {
+            throw new RuntimeException("Account with this name already exists");
+        });
+
+        
         account.setName(newName);
         return accountRepository.save(account);
     }

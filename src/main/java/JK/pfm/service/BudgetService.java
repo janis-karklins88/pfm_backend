@@ -36,6 +36,7 @@ public class BudgetService {
     
     //getting all budgets for user
     public List<Budget> getAllBudgets(Long userId, LocalDate filterStart, LocalDate filterEnd) {
+        Validations.checkStartEndDate(filterStart, filterEnd);
     // Start with the specification that filters budgets by user
     Specification<Budget> spec = Specification.where(BudgetSpecifications.belongsToUser(userId));
     
