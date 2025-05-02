@@ -1,6 +1,7 @@
 package JK.pfm.service;
 
 import JK.pfm.model.Account;
+import JK.pfm.model.Category;
 import JK.pfm.model.Transaction;
 import JK.pfm.repository.AccountRepository;
 import JK.pfm.repository.TransactionRepository;
@@ -80,6 +81,13 @@ public class TransactionService {
         
         if (!transaction.getAccount().getUser().getId().equals(userId)) {
             throw new RuntimeException("Transaction not found!");
+        }
+        Category category = transaction.getCategory();
+        
+        if(category.getName().equals("Savings") || 
+           category.getName().equals("Fund Transfer") || 
+           category.getName().equals("Initial account opening")){
+           throw new RuntimeException("Can not delete this transaction!");
         }
         
         //fund handling

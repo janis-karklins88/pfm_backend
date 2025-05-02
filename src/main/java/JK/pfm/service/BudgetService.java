@@ -52,7 +52,9 @@ public class BudgetService {
     public Budget saveBudget(Budget budget) {
         Validations.checkDate(budget.getStartDate());
         Validations.checkDate(budget.getEndDate());
+        Validations.checkStartEndDate(budget.getStartDate(), budget.getEndDate());
         Validations.numberCheck(budget.getAmount(), "amount");
+        Validations.negativeCheck(budget.getAmount(), "amount");
         Validations.checkObj(budget.getCategory(), "category");
         Validations.checkObj(budget.getUser(), "user");
         return budgetRepository.save(budget);
