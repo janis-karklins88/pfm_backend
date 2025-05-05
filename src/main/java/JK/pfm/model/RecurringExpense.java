@@ -23,6 +23,8 @@ public class RecurringExpense {
     
     private LocalDate nextDueDate;
     
+    private LocalDate lastPayment = null;
+    
     private Boolean active;
     
     
@@ -82,6 +84,14 @@ public class RecurringExpense {
   
     public void setStartDate(LocalDate startDate) {
         this.startDate = startDate;
+    }
+    
+    public LocalDate getLastPayment() {
+        return lastPayment;
+    }
+  
+    public void setLastPayment(LocalDate startDate) {
+        this.lastPayment = startDate;
     }
   
     public String getFrequency() {

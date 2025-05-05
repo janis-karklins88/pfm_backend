@@ -8,11 +8,12 @@ import JK.pfm.repository.AccountRepository;
 import JK.pfm.model.Account;
 import JK.pfm.model.Category;
 import JK.pfm.specifications.RecurringExpenseSpecifications;
-import JK.pfm.specifications.TransactionSpecifications;
 import JK.pfm.util.SecurityUtil;
 import JK.pfm.util.Validations;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.Period;
+import java.time.temporal.TemporalAmount;
 import java.util.ArrayList;
 import java.util.Collections;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -155,6 +156,7 @@ public class RecurringExpenseService {
         return recurringExpenseRepository.save(expense);
     }
 
+    //resume, inject java.time.Clock for unit testing
     @Transactional
     public RecurringExpense resumeRecurringExpense(Long id, Long userId) {
         RecurringExpense expense = recurringExpenseRepository.findById(id)
@@ -162,8 +164,25 @@ public class RecurringExpenseService {
         if (!expense.getAccount().getUser().getId().equals(userId)) {
             throw new RuntimeException("Not authorized to resume this expense");
         }
+        
+        LocalDate base = expense.getLastPayment();
+        
+        if(base != null){
+        TemporalAmount step = switch (expense.getFrequency()) {
+        case "WEEKLY"    -> Period.ofWeeks(1);
+        case "MONTHLY"   -> Period.ofMonths(1);
+        case "ANNUALLY"  -> Period.ofYears(1);
+        default -> throw new RuntimeException("Unsupported frequency");
+        };
+        
+        LocalDate next = base.plus(step);
+        while (!next.isAfter(LocalDate.now())) {
+        next = next.plus(step);
+        }
+        expense.setNextDueDate(next);
+        }
         expense.setActive(true);
-        expense.setNextDueDate(LocalDate.now());
+        
         return recurringExpenseRepository.save(expense);
     }
 
@@ -219,7 +238,7 @@ public class RecurringExpenseService {
             transaction.setAmount(amount);
             transaction.setCategory(category);
             transaction.setType("Expense");
-            transaction.setDate(LocalDate.now());
+            transaction.setDate(today);
             transaction.setDescription(frequency + " payment: " + name);
             transactionRepository.save(transaction);
             
@@ -229,6 +248,7 @@ public class RecurringExpenseService {
             
             // Update the recurring expense's nextDueDate based on its frequency
             expense.setNextDueDate(calculateNextDueDate(expense));
+            expense.setLastPayment(today);
             recurringExpenseRepository.save(expense);
         }
     }

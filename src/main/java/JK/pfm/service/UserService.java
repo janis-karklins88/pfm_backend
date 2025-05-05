@@ -1,15 +1,20 @@
 package JK.pfm.service;
 
+import JK.pfm.dto.changePasswordRequestDTO;
 import JK.pfm.model.Category;
 import java.util.Optional;
 import JK.pfm.model.User;
 import JK.pfm.model.UserCategoryPreference;
+import JK.pfm.model.UserSettings;
 import JK.pfm.repository.CategoryRepository;
 import JK.pfm.util.Validations;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import JK.pfm.repository.UserRepository;
+import JK.pfm.repository.UserSettingsRepository;
 import JK.pfm.util.JWTUtil;
+import JK.pfm.util.SecurityUtil;
+import jakarta.transaction.Transactional;
 import java.util.List;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
@@ -23,9 +28,13 @@ public class UserService {
     
     @Autowired
     private CategoryRepository categoryRepository;
+    
+    @Autowired
+    private UserSettingsRepository settingsRepository;
       
     
     //saving users
+    @Transactional
     public User saveUser(User user) {
     // Check if username is already taken
     if (userRepository.existsByUsername(user.getUsername())) {
@@ -44,6 +53,9 @@ public class UserService {
         UserCategoryPreference pref = new UserCategoryPreference(user, category);
         user.addCategoryPreference(pref);
     }
+    //create default settings
+    UserSettings settings = new UserSettings(user, "EUR");
+    settingsRepository.save(settings);
     
     // Save the user; cascading will save the preferences as well
     return userRepository.save(user);
@@ -63,6 +75,38 @@ public class UserService {
     return JWTUtil.generateToken(username);
 }
     
+    //change username
+    public String changeUsername(String username){
+        Validations.emptyFieldValidation(username, "Username");
+        if (userRepository.existsByUsername(username)) {
+        throw new RuntimeException("Username already taken");
+        }
+        User user = SecurityUtil.getUser(userRepository);
+        user.setUsername(username);
+        userRepository.save(user);
+        return username;
+        
+    }
+    
+    //change password
+    @Transactional
+    public void changePassword(changePasswordRequestDTO request){
+        Validations.emptyFieldValidation(request.getPassword(), "Password");
+        Validations.emptyFieldValidation(request.getNewPassword(), "New password");
+        Validations.emptyFieldValidation(request.getNewPasswordCheck(), "Re entered password");
+        
+        if(!request.getNewPassword().equals(request.getNewPasswordCheck())){
+            throw new RuntimeException("New password does not match");
+        }
+        
+        User user = SecurityUtil.getUser(userRepository);
+        if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
+        throw new RuntimeException("Invalid password");
+        }
+        
+        user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+        userRepository.save(user);
+    }
     
     
 

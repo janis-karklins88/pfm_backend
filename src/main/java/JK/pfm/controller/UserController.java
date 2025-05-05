@@ -1,6 +1,7 @@
 package jk.pfm.controller;
 
 import JK.pfm.dto.UserLoginRequest;
+import JK.pfm.dto.changePasswordRequestDTO;
 import JK.pfm.model.User;
 import JK.pfm.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -44,6 +45,19 @@ public class UserController {
     public ResponseEntity<String> getName(){
         User user = SecurityUtil.getUser(userRepository);
         return ResponseEntity.ok(user.getUsername());
+    }
+    
+    //change username
+    @PatchMapping("/change-username")
+    public ResponseEntity<String> changeName(@RequestBody String username){
+        return ResponseEntity.ok(userService.changeUsername(username));
+    }
+    
+    //change password
+    @PatchMapping("/change-password")
+    public ResponseEntity<Void> changePassword(@RequestBody changePasswordRequestDTO request){
+        userService.changePassword(request);
+        return ResponseEntity.noContent().build();
     }
     
     
