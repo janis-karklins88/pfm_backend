@@ -1,5 +1,6 @@
 package JK.pfm.controller;
 
+import JK.pfm.dto.CategoryListDto;
 import JK.pfm.model.Category;
 import JK.pfm.service.CategoryService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,10 +18,17 @@ public class CategoryController {
     @Autowired
     private CategoryService categoryService;
     
-    //Get all categories for user
+    //Get all active categories for user
     @GetMapping
     public ResponseEntity<List<Category>> getAllCategoriesForUser() {
         List<Category> categories = categoryService.getAllCategoriesForUser();
+        return ResponseEntity.ok(categories);
+    }
+    
+    //Get all categories for user
+    @GetMapping("/all")
+    public ResponseEntity<List<CategoryListDto>> getAllCategories() {
+        List<CategoryListDto> categories = categoryService.getAllCategories();
         return ResponseEntity.ok(categories);
     }
 
@@ -41,9 +49,7 @@ public class CategoryController {
         if (active == null) {
             return ResponseEntity.badRequest().build();
         }
-        Optional<Category> categoryOpt = categoryService.updateCategoryVisibility(id, active);
-        return categoryOpt
-                .map(ResponseEntity::ok)
-                .orElseGet(() -> ResponseEntity.notFound().build());
+        categoryService.updateCategoryVisibility(id, active);
+        return ResponseEntity.noContent().build();
     }
 }

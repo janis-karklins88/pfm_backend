@@ -10,6 +10,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import JK.pfm.service.UserService;
 import JK.pfm.util.SecurityUtil;
+import java.util.Map;
 
 
 @RestController
@@ -49,8 +50,8 @@ public class UserController {
     
     //change username
     @PatchMapping("/change-username")
-    public ResponseEntity<String> changeName(@RequestBody String username){
-        return ResponseEntity.ok(userService.changeUsername(username));
+    public ResponseEntity<String> changeName(@RequestBody Map<String, String> request){
+        return ResponseEntity.ok(userService.changeUsername(request.get("username")));
     }
     
     //change password

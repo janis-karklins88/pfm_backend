@@ -1,5 +1,6 @@
 package JK.pfm.service;
 
+import JK.pfm.dto.CategoryListDto;
 import JK.pfm.model.Category;
 import JK.pfm.model.User;
 import JK.pfm.model.UserCategoryPreference;
@@ -9,11 +10,11 @@ import JK.pfm.repository.UserRepository;
 import JK.pfm.util.SecurityUtil;
 import JK.pfm.util.Validations;
 import jakarta.transaction.Transactional;
+import java.util.ArrayList;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -26,7 +27,7 @@ public class CategoryService {
     @Autowired
     private UserCategoryPreferenceRepository userCategoryPreferenceRepository;
 
-    //getting all categories for user
+    //getting all active categories for user
     public List<Category> getAllCategoriesForUser() {
         User user = SecurityUtil.getUser(userRepository);
         
@@ -36,6 +37,20 @@ public class CategoryService {
                       .map(UserCategoryPreference::getCategory)
                       .collect(Collectors.toList());
         
+    }
+    
+    //getting all categories for user
+    public List<CategoryListDto> getAllCategories() {
+        User user = SecurityUtil.getUser(userRepository);
+        
+        return userCategoryPreferenceRepository.findByUserId(user.getId())
+        .stream()
+        .map(pref -> new CategoryListDto(
+            pref.getCategory().getId(),       // supply the ID
+            pref.getCategory().getName(),
+            pref.getActive()
+        ))
+        .toList();
     }
 
     //saving category
@@ -62,21 +77,12 @@ public class CategoryService {
 
 
     //set active/inactive
-    public Optional<Category> updateCategoryVisibility(Long categoryId, boolean active) {
-        // Get the current user
-        User user = SecurityUtil.getUser(userRepository);
-    
-        // Find the preference record for this user and category
-        Optional<UserCategoryPreference> prefOpt = userCategoryPreferenceRepository.findByUserIdAndCategoryId(user.getId(), categoryId);
-    
-        if (prefOpt.isEmpty()) {
-            throw new RuntimeException("User preference for category not found");
-        }
-    
-        UserCategoryPreference pref = prefOpt.get();
+    @Transactional
+    public void updateCategoryVisibility(Long categoryId, boolean active) {
+        UserCategoryPreference pref = 
+                userCategoryPreferenceRepository.findByUserIdAndCategoryId(SecurityUtil.getUserId(), categoryId)
+                        .orElseThrow(() -> new RuntimeException("User preference not found"));
         pref.setActive(active);
         userCategoryPreferenceRepository.save(pref);
-    
-        return Optional.of(pref.getCategory());
     }
 }

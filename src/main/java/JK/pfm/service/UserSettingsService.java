@@ -20,4 +20,13 @@ public class UserSettingsService {
         UserSettingsDto settings = new UserSettingsDto(userSettings.getCurrency());
         return settings;
     }
+    
+    public void setUserCurrency(String currency){
+        Long userId = SecurityUtil.getUserId();
+        UserSettings userSettings = userSettingsRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User settings not found"));
+        
+        userSettings.setCurrency(currency);
+        userSettingsRepository.save(userSettings);
+    }
 }

@@ -2,12 +2,12 @@
 package JK.pfm.controller;
 
 import JK.pfm.dto.UserSettingsDto;
-import JK.pfm.model.UserSettings;
-import JK.pfm.repository.UserSettingsRepository;
 import JK.pfm.service.UserSettingsService;
-import org.springframework.beans.factory.annotation.Autowired;
+import java.util.Map;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -23,8 +23,15 @@ public class UserSettingsController {
     }
     
     @GetMapping
-    public ResponseEntity<UserSettingsDto> getUserCurrency(){
+    public ResponseEntity<UserSettingsDto> getUserSettings(){
         UserSettingsDto dto = settingsService.getUserSettings();
         return ResponseEntity.ok(dto);
+    }
+    
+    @PatchMapping("/currency")
+    public ResponseEntity<Void> setUserCurrency(@RequestBody Map<String, String> request){
+        String curr = request.get("currency");
+        settingsService.setUserCurrency(curr);
+        return ResponseEntity.noContent().build();
     }
 }
