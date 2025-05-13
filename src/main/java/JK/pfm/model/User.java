@@ -1,8 +1,9 @@
 package JK.pfm.model;
 import jakarta.persistence.*;
+import jakarta.validation.constraints.NotNull;
 import java.util.HashSet;
 import java.util.Set;
-import javax.validation.constraints.NotNull;
+
 
 
 @Entity

@@ -2,7 +2,6 @@ package JK.pfm.service;
 
 import JK.pfm.dto.changePasswordRequestDTO;
 import JK.pfm.model.Category;
-import java.util.Optional;
 import JK.pfm.model.User;
 import JK.pfm.model.UserCategoryPreference;
 import JK.pfm.model.UserSettings;
@@ -16,7 +15,9 @@ import JK.pfm.util.JWTUtil;
 import JK.pfm.util.SecurityUtil;
 import jakarta.transaction.Transactional;
 import java.util.List;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.web.server.ResponseStatusException;
 
 @Service
 public class UserService {
@@ -76,6 +77,7 @@ public class UserService {
 }
     
     //change username
+    @Transactional
     public String changeUsername(String username){
         Validations.emptyFieldValidation(username, "Username");
         if (userRepository.existsByUsername(username)) {
@@ -84,24 +86,28 @@ public class UserService {
         User user = SecurityUtil.getUser(userRepository);
         user.setUsername(username);
         userRepository.save(user);
-        return username;
+        String token = JWTUtil.generateToken(username);
+        return token;
         
     }
     
     //change password
     @Transactional
     public void changePassword(changePasswordRequestDTO request){
-        Validations.emptyFieldValidation(request.getPassword(), "Password");
-        Validations.emptyFieldValidation(request.getNewPassword(), "New password");
-        Validations.emptyFieldValidation(request.getNewPasswordCheck(), "Re entered password");
         
         if(!request.getNewPassword().equals(request.getNewPasswordCheck())){
-            throw new RuntimeException("New password does not match");
+            throw new ResponseStatusException(
+                HttpStatus.BAD_REQUEST,
+                "New password and confirmation do not match"
+            );
         }
         
         User user = SecurityUtil.getUser(userRepository);
         if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
-        throw new RuntimeException("Invalid password");
+            throw new ResponseStatusException(
+                HttpStatus.UNAUTHORIZED,
+                "Current password is incorrect"
+            );
         }
         
         user.setPassword(passwordEncoder.encode(request.getNewPassword()));

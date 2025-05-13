@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.*;
 import JK.pfm.service.UserService;
 import JK.pfm.util.SecurityUtil;
 import java.util.Map;
+import jakarta.validation.*;
 
 
 @RestController
@@ -50,13 +51,14 @@ public class UserController {
     
     //change username
     @PatchMapping("/change-username")
-    public ResponseEntity<String> changeName(@RequestBody Map<String, String> request){
-        return ResponseEntity.ok(userService.changeUsername(request.get("username")));
+    public ResponseEntity<Map<String, String>> changeName(@RequestBody Map<String, String> request){
+        String token = userService.changeUsername(request.get("username"));
+        return ResponseEntity.ok(Map.of("token", token));
     }
     
     //change password
     @PatchMapping("/change-password")
-    public ResponseEntity<Void> changePassword(@RequestBody changePasswordRequestDTO request){
+    public ResponseEntity<Void> changePassword(@Valid @RequestBody changePasswordRequestDTO request){
         userService.changePassword(request);
         return ResponseEntity.noContent().build();
     }

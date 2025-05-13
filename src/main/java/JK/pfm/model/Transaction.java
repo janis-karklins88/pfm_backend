@@ -2,9 +2,10 @@
 package JK.pfm.model;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.NotNull;
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import javax.validation.constraints.NotNull;
+
 
 @Entity
 @Table(name = "transactions")
