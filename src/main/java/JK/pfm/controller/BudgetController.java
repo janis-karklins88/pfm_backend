@@ -4,11 +4,13 @@ import JK.pfm.model.Budget;
 import JK.pfm.service.BudgetService;
 import java.math.BigDecimal;
 import JK.pfm.dto.BudgetCreationRequest;
+import JK.pfm.dto.UpdateBudgetAmountDto;
 import JK.pfm.model.Category;
 import JK.pfm.model.User;
 import JK.pfm.repository.CategoryRepository;
 import JK.pfm.repository.UserRepository;
 import JK.pfm.util.SecurityUtil;
+import jakarta.validation.Valid;
 import java.time.LocalDate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -44,41 +46,23 @@ public class BudgetController {
 
     //create budget
     @PostMapping
-    public ResponseEntity<Budget> createBudget(@RequestBody BudgetCreationRequest request) {
-
-        User user = SecurityUtil.getUser(userRepository);
+    public ResponseEntity<Budget> createBudget(@Valid @RequestBody BudgetCreationRequest request) {
         
-        //get category
-        Category category = categoryRepository.findById(request.getCategoryId())
-        .orElseThrow(() -> new RuntimeException("Category not found!"));
-        
-        Budget budget = new Budget(request.getAmount(), request.getStartDate(), request.getEndDate(), category, user);
-        
-        Budget savedBudget = budgetService.saveBudget(budget);
-        return ResponseEntity.ok(savedBudget);
+        return ResponseEntity.status(HttpStatus.CREATED).body(budgetService.saveBudget(request));
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteBudget(@PathVariable Long id) {
-        Long userId = SecurityUtil.getUserId();
-    
-        // Try to delete the budget for this user
-        boolean deleted = budgetService.deleteBudgetForUser(id, userId);
-        if (!deleted) {
-            // If deletion fails because the budget doesn't belong to the user, return 403 Forbidden
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
-        }
+        budgetService.deleteBudgetForUser(id);
         return ResponseEntity.noContent().build();
 }
 
     
     //update amount
     @PatchMapping("/{id}")
-    public ResponseEntity<Budget> updateBudgetAmount(@PathVariable Long id, @RequestBody Map<String, BigDecimal> request) {
-        BigDecimal newAmount = request.get("amount");
-
-        Budget updatedBudget = budgetService.updateBudgetAmount(id, newAmount);
-        return ResponseEntity.ok(updatedBudget);
+    public ResponseEntity<Budget> updateBudgetAmount(@PathVariable Long id, 
+            @Valid @RequestBody UpdateBudgetAmountDto request) {
+        return ResponseEntity.ok(budgetService.updateBudgetAmount(id, request));
     }
     
     //get amount spent on budget

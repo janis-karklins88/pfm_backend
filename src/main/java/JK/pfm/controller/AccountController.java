@@ -1,10 +1,12 @@
 package JK.pfm.controller;
 
 import JK.pfm.dto.AccountCreationRequest;
+import JK.pfm.dto.ChangeAccountNameDto;
 import JK.pfm.dto.SavingsFundTransferDTO;
 import JK.pfm.model.Account;
 import JK.pfm.service.AccountService;
 import JK.pfm.util.SecurityUtil;
+import jakarta.validation.Valid;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
@@ -38,7 +40,7 @@ public class AccountController {
 
     // Create a new account for the authenticated user
     @PostMapping
-    public ResponseEntity<Account> createAccount(@RequestBody AccountCreationRequest request) {
+    public ResponseEntity<Account> createAccount(@Valid @RequestBody AccountCreationRequest request) {
         Account savedAccount = accountService.saveAccount(request);
         return ResponseEntity.ok(savedAccount);
     }
@@ -52,9 +54,8 @@ public class AccountController {
     
     // Update account name
     @PatchMapping("/{id}/name")
-    public ResponseEntity<Account> updateAccountName(@PathVariable Long id, @RequestBody Map<String, String> request) {
-        String newName = request.get("name");
-        Account updatedAccount = accountService.updateAccountName(id, newName);
+    public ResponseEntity<Account> updateAccountName(@PathVariable Long id, @Valid @RequestBody ChangeAccountNameDto request) {
+        Account updatedAccount = accountService.updateAccountName(id, request);
         return ResponseEntity.ok(updatedAccount);
     }
     
@@ -62,7 +63,7 @@ public class AccountController {
     @PatchMapping("/{id}/transfer-funds")
     public ResponseEntity<Account> transferAccountFunds(
             @PathVariable Long id, 
-            @RequestBody SavingsFundTransferDTO request) {
+            @Valid @RequestBody SavingsFundTransferDTO request) {
         
 
         Account account = accountService.transferAccountFunds(id, request);

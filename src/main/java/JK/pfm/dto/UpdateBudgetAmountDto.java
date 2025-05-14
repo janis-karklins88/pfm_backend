@@ -1,27 +1,18 @@
 
 package JK.pfm.dto;
 
-import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.PositiveOrZero;
 import java.math.BigDecimal;
 
-public class AccountCreationRequest {
-    @NotBlank(message = "Account name is required")
-    private String name;
-    
+
+public class UpdateBudgetAmountDto {
     @NotNull(message = "Amount is required")
     @PositiveOrZero(message = "Amount cant be negative")
     private BigDecimal amount;
     
-    
-    // getters and setters
-    public String getName() {
-        return name;
-    }
-
-    public void setName(String name) {
-        this.name = name;
+    public UpdateBudgetAmountDto(BigDecimal amount){
+        this.amount = amount;
     }
     
     public BigDecimal getAmount(){
@@ -31,5 +22,4 @@ public class AccountCreationRequest {
     public void setAmount(BigDecimal amount){
         this.amount = amount;
     }
-
 }

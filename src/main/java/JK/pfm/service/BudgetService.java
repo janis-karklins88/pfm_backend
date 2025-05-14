@@ -1,13 +1,17 @@
 package JK.pfm.service;
 
+import JK.pfm.dto.BudgetCreationRequest;
+import JK.pfm.dto.UpdateBudgetAmountDto;
 import JK.pfm.model.Account;
 import JK.pfm.model.Budget;
 import JK.pfm.model.Category;
 import JK.pfm.model.User;
 import JK.pfm.repository.AccountRepository;
 import JK.pfm.repository.BudgetRepository;
+import JK.pfm.repository.CategoryRepository;
 import JK.pfm.repository.UserRepository;
 import JK.pfm.specifications.BudgetSpecifications;
+import JK.pfm.util.AccountUtil;
 import JK.pfm.util.SecurityUtil;
 import JK.pfm.util.Validations;
 import jakarta.transaction.Transactional;
@@ -32,6 +36,12 @@ public class BudgetService {
     private BudgetRepository budgetRepository;
     @Autowired
     private AccountRepository accountRepository;
+    @Autowired
+    private UserRepository userRepository;
+    @Autowired
+    private CategoryRepository categoryRepository;
+    @Autowired 
+    private AccountUtil accountUtil;
 
     
     //getting all budgets for user
@@ -49,33 +59,40 @@ public class BudgetService {
 }
 
     //saving budget
-    public Budget saveBudget(Budget budget) {
-        Validations.checkDate(budget.getStartDate());
-        Validations.checkDate(budget.getEndDate());
-        Validations.checkStartEndDate(budget.getStartDate(), budget.getEndDate());
-        Validations.numberCheck(budget.getAmount(), "amount");
-        Validations.negativeCheck(budget.getAmount(), "amount");
-        Validations.checkObj(budget.getCategory(), "category");
-        Validations.checkObj(budget.getUser(), "user");
+    public Budget saveBudget(BudgetCreationRequest request) {
+        //get user
+        User user = SecurityUtil.getUser(userRepository);
+        
+        //get category
+        Category category = categoryRepository.findById(request.getCategoryId())
+        .orElseThrow(() -> new ResponseStatusException(
+                HttpStatus.NOT_FOUND,
+                "Category not found"
+            ));
+        
+        //create budget
+        Budget budget = new Budget(request.getAmount(), request.getStartDate(), request.getEndDate(), category, user);
+        
         return budgetRepository.save(budget);
     }
 
     //deleting budget
-    public boolean deleteBudgetForUser(Long budgetId, Long userId) {
-        Optional<Budget> budgetOpt = budgetRepository.findById(budgetId);
-        if (!budgetOpt.isPresent()) {
-            // Optionally, you could throw a ResourceNotFoundException
-            throw new RuntimeException("Budget not found");
-        }
-        Budget budget = budgetOpt.get();
-    
+    public boolean deleteBudgetForUser(Long budgetId) {
+        Budget budget = budgetRepository.findById(budgetId)
+        .orElseThrow(() -> new ResponseStatusException(
+                HttpStatus.NOT_FOUND,
+                "Budget not found"
+            ));
+        
+        Long userId = SecurityUtil.getUserId();
         // Check if the budget belongs to the authenticated user
         if (!budget.getUser().getId().equals(userId)) {
-            // If not, return false (or throw an exception)
-            return false;
+            throw new ResponseStatusException(
+                HttpStatus.FORBIDDEN,
+                "Budget not found"
+            );
         }
-    
-        // Otherwise, delete the budget and return true
+
         budgetRepository.delete(budget);
         return true;
 }
@@ -88,48 +105,48 @@ public class BudgetService {
     
     //update amount
     @Transactional
-    public Budget updateBudgetAmount(Long id, BigDecimal amount){
-        Validations.numberCheck(amount, "Amount");
-        Validations.negativeCheck(amount, "Amount");
-        //get userId
-        Long userId = SecurityUtil.getUserId();
-        
+    public Budget updateBudgetAmount(Long id, UpdateBudgetAmountDto request){    
         //get budget
         Budget budget = budgetRepository.findById(id)
-        .orElseThrow(() -> new RuntimeException("Budget not found!"));
+        .orElseThrow(() -> new ResponseStatusException(
+                HttpStatus.NOT_FOUND,
+                "Budget not found"
+            ));
         
+        Long userId = SecurityUtil.getUserId();
         if (!budget.getUser().getId().equals(userId)) {
-            throw new RuntimeException("Budget not found!");
+            throw new ResponseStatusException(
+                HttpStatus.FORBIDDEN,
+                "Budget not found"
+            );
         }
         
-        budget.setAmount(amount);
+        budget.setAmount(request.getAmount());
         
         return budgetRepository.save(budget);
     }
     
     //get total spent on budget
     public BigDecimal getTotalSpentOnBudget(Long id){
-        Optional<Budget> budgetOpt = budgetRepository.findById(id);
-        if (budgetOpt.isEmpty()) {
-            throw new RuntimeException("Budget not found!");
-        }
-        Budget budget = budgetOpt.get(); 
+        //get budget
+        Budget budget = budgetRepository.findById(id)
+        .orElseThrow(() -> new ResponseStatusException(
+                HttpStatus.NOT_FOUND,
+                "Budget not found"
+            ));
         
-        //check ownership
         Long userId = SecurityUtil.getUserId();
         if (!budget.getUser().getId().equals(userId)) {
-            throw new RuntimeException("Budget not found!");
-        }
-        //get accounts for user
-        List<Account> accounts = accountRepository.findByUserIdAndActiveTrue(userId);
-        List<Long> accountIds = new ArrayList<>();
-        for(Account account : accounts){
-            Long accId = account.getId();
-            accountIds.add(accId);
+            throw new ResponseStatusException(
+                HttpStatus.FORBIDDEN,
+                "Budget not found"
+            );
         }
         
-        Category category = budget.getCategory();
-        return budgetRepository.getTotalSpentOnBudget(category.getId(), budget.getStartDate(), budget.getEndDate(), accountIds);
+        //get accounts for user
+        List<Long> accountIds = accountUtil.getUserAccountIds();
+        
+        return budgetRepository.getTotalSpentOnBudget(budget.getCategory().getId(), budget.getStartDate(), budget.getEndDate(), accountIds);
     } 
     
     // Recreate budgets for next month

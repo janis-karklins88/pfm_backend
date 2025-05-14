@@ -1,6 +1,7 @@
 package JK.pfm.service;
 
 import JK.pfm.dto.AccountCreationRequest;
+import JK.pfm.dto.ChangeAccountNameDto;
 import JK.pfm.dto.SavingsFundTransferDTO;
 import JK.pfm.model.Account;
 import JK.pfm.model.Category;
@@ -9,15 +10,14 @@ import JK.pfm.repository.AccountRepository;
 import JK.pfm.repository.CategoryRepository;
 import JK.pfm.repository.UserRepository;
 import JK.pfm.util.SecurityUtil;
-import JK.pfm.util.Validations;
 import jakarta.transaction.Transactional;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import java.util.List;
-import java.util.Optional;
-
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
 
 @Service
 public class AccountService {
@@ -42,17 +42,15 @@ public class AccountService {
     //saving account
     @Transactional
     public Account saveAccount(AccountCreationRequest request) {
-        //validations
-        Validations.emptyFieldValidation(request.getName(), "Name");
-        Validations.numberCheck(request.getAmount(), "Amount");
-        Validations.negativeCheck(request.getAmount(), "Amount");
-        
-        //get user details
+
         Long userId = SecurityUtil.getUserId();
         
         //check if account already exist
         if (accountRepository.findByUserIdAndNameAndActiveTrue(userId, request.getName()).isPresent()) {
-            throw new RuntimeException("Account with name " + request.getName() + " already exists.");
+            throw new ResponseStatusException(
+            HttpStatus.CONFLICT,
+            "Account with this name already exists"
+            );
         }
         
         Account account = new Account(
@@ -87,11 +85,17 @@ public class AccountService {
     public void deleteAccount(Long id) {
         Long userId = SecurityUtil.getUserId();
         Account account = accountRepository.findByUserIdAndIdAndActiveTrue(userId, id)
-        .orElseThrow(() -> new RuntimeException("Account not found!"));
+        .orElseThrow(() -> new ResponseStatusException(
+                HttpStatus.NOT_FOUND,
+                "Account not found"
+            ));
         
         //check for funds
         if(account.getAmount().compareTo(BigDecimal.ZERO) != 0){
-            throw new RuntimeException("Account still has funds. Please withdraw funds before deletion.");
+            throw new ResponseStatusException(
+            HttpStatus.CONFLICT,
+            "Account still has funds. Please withdraw funds before deletion."
+            );
         }
         
         //set incative
@@ -109,23 +113,31 @@ public class AccountService {
     
     //updating account name
     @Transactional
-    public Account updateAccountName(Long id, String newName) {
-        //validating field
+    public Account updateAccountName(Long id, ChangeAccountNameDto request) {
         Long userId = SecurityUtil.getUserId();
-        Validations.emptyFieldValidation(newName, "Account Name");
+        
         Account account = accountRepository.findById(id)
-        .orElseThrow(() -> new RuntimeException("Account not found!"));
+        .orElseThrow(() -> new ResponseStatusException(
+                HttpStatus.NOT_FOUND,
+                "Account not found"
+            ));
+        
         if(!account.getUser().getId().equals(userId)){
-            throw new RuntimeException("Account not found!");
+            throw new ResponseStatusException(
+                HttpStatus.FORBIDDEN,
+                "Account not found"
+            );
         }
         
-        accountRepository.findByUserIdAndNameAndActiveTrue(userId, newName)
+        accountRepository.findByUserIdAndNameAndActiveTrue(userId, request.getName())
         .ifPresent(a -> {
-            throw new RuntimeException("Account with this name already exists");
+            throw new ResponseStatusException(
+            HttpStatus.CONFLICT,
+            "Account name already exists"
+            );
         });
-
         
-        account.setName(newName);
+        account.setName(request.getName());
         return accountRepository.save(account);
     }
     
@@ -137,14 +149,14 @@ public class AccountService {
         Long userId = SecurityUtil.getUserId();
         //get cat
        Category category = categoryRepository.findByName("Fund Transfer")
-        .orElseThrow(() -> new RuntimeException("Category not found!"));
+        .orElseThrow(() -> new ResponseStatusException(
+            HttpStatus.INTERNAL_SERVER_ERROR,
+            "Fund Transfer category is missing"
+        ));
        //get date
         LocalDate date = LocalDate.now();
         //amount
-        BigDecimal amount = request.getAmount();
-        Validations.negativeCheck(amount, "Amount");
-        Validations.numberCheck(amount, "Amount");
-        
+        BigDecimal amount = request.getAmount();       
         
         //setting accounts
         Account depositAccount;
@@ -152,28 +164,50 @@ public class AccountService {
         
         if(request.getType().equals("Deposit")){
             depositAccount = accountRepository.findByUserIdAndIdAndActiveTrue(userId, accountId)
-            .orElseThrow(() -> new RuntimeException("Account not found!"));
+            .orElseThrow(() -> new ResponseStatusException(
+                HttpStatus.NOT_FOUND,
+                "Account not found"
+            ));
             
             withdrawAccount = accountRepository.findByUserIdAndNameAndActiveTrue(userId, request.getAccountName())
-            .orElseThrow(() -> new RuntimeException("Account not found!"));
+            .orElseThrow(() -> new ResponseStatusException(
+                HttpStatus.NOT_FOUND,
+                "Account not found"
+            ));
             
             //fund check
             if (withdrawAccount.getAmount().compareTo(amount) < 0){
-                throw new RuntimeException("Not enough funds in" + request.getAccountName());
+                throw new ResponseStatusException(
+            HttpStatus.CONFLICT,
+            "Not enough funds"
+            );
             }
         } else if (request.getType().equals("Withdraw")) {
              withdrawAccount = accountRepository.findByUserIdAndIdAndActiveTrue(userId, accountId)
-            .orElseThrow(() -> new RuntimeException("Account not found!"));
+            .orElseThrow(() -> new ResponseStatusException(
+                HttpStatus.NOT_FOUND,
+                "Account not found"
+            ));
             
             depositAccount = accountRepository.findByUserIdAndNameAndActiveTrue(userId, request.getAccountName())
-            .orElseThrow(() -> new RuntimeException("Account not found!"));
+            .orElseThrow(() -> new ResponseStatusException(
+                HttpStatus.NOT_FOUND,
+                "Account not found"
+            ));
             
             //fund check
             if (withdrawAccount.getAmount().compareTo(amount) < 0){
-                throw new RuntimeException("Not enough funds in" + withdrawAccount.getName());
+                throw new ResponseStatusException(
+            HttpStatus.CONFLICT,
+            "Not enough funds"
+            );
             }
         } else {
-            throw new IllegalArgumentException("Unknown transfer type: " + request.getType());
+            throw new ResponseStatusException(
+            HttpStatus.BAD_REQUEST,
+             "Unknown transfer type: " + request.getType()
+            );
+
         }
         
         //creating transactions
@@ -187,7 +221,10 @@ public class AccountService {
             
             
             Account targetAccount = accountRepository.findByUserIdAndIdAndActiveTrue(userId, accountId)
-                    .orElseThrow(() -> new RuntimeException("Account not found!"));
+                    .orElseThrow(() -> new ResponseStatusException(
+                HttpStatus.NOT_FOUND,
+                "Account not found"
+            ));
         return targetAccount;
         
     }

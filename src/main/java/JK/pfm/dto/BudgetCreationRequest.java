@@ -1,16 +1,36 @@
 
 package JK.pfm.dto;
 
+import jakarta.validation.constraints.AssertTrue;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.PositiveOrZero;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 
 
 public class BudgetCreationRequest {
-    
+    @NotNull(message = "Start date is required")
     private LocalDate startDate;
+    
+    @NotNull(message = "End date is required")
     private LocalDate endDate;
+    
+    @NotNull(message = "Amount is required")
+    @PositiveOrZero(message = "Amount cant be negative")
     private BigDecimal amount;
+    
+    @NotBlank(message = "Category missing")
     private Long categoryId;
+    
+    @AssertTrue(message = "End date must be on or after start date")
+    public boolean isEndDateOnOrAfterStart() {
+    if (startDate == null || endDate == null) {
+      return true;
+    }
+    
+    return !endDate.isBefore(startDate);
+  }
     
     // getters and setters
     public Long getCategoryId() {

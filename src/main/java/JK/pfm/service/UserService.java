@@ -1,12 +1,12 @@
 package JK.pfm.service;
 
+import JK.pfm.dto.UserRegistrationDto;
 import JK.pfm.dto.changePasswordRequestDTO;
 import JK.pfm.model.Category;
 import JK.pfm.model.User;
 import JK.pfm.model.UserCategoryPreference;
 import JK.pfm.model.UserSettings;
 import JK.pfm.repository.CategoryRepository;
-import JK.pfm.util.Validations;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import JK.pfm.repository.UserRepository;
@@ -36,17 +36,19 @@ public class UserService {
     
     //saving users
     @Transactional
-    public User saveUser(User user) {
+    public User saveUser(UserRegistrationDto dto) {
     // Check if username is already taken
-    if (userRepository.existsByUsername(user.getUsername())) {
-        throw new RuntimeException("Username already taken");
+    if (userRepository.existsByUsername(dto.getUsername())) {
+        throw new ResponseStatusException(
+        HttpStatus.CONFLICT,
+        "Username already taken"
+      );
     }   
-    // Validate fields
-    Validations.emptyFieldValidation(user.getPassword(), "Password");
-    Validations.emptyFieldValidation(user.getUsername(), "Username");
+    User user = new User();
+    user.setPassword(passwordEncoder.encode(dto.getPassword()));
+    user.setUsername(dto.getUsername());
     
-    // Hash the password
-    user.setPassword(passwordEncoder.encode(user.getPassword()));
+    userRepository.save(user);
     
     // Get default categories and add preferences to the user's collection
     List<Category> defaultCategories = categoryRepository.findByIsDefaultTrue();
@@ -58,19 +60,25 @@ public class UserService {
     UserSettings settings = new UserSettings(user, "EUR");
     settingsRepository.save(settings);
     
-    // Save the user; cascading will save the preferences as well
-    return userRepository.save(user);
+    return user;
+    
 }
 
 
     public String login(String username, String password) {
    
     User foundUser = userRepository.findByUsername(username)
-    .orElseThrow(() -> new RuntimeException("Incorrect username!"));
+    .orElseThrow(() -> new ResponseStatusException(
+          HttpStatus.UNAUTHORIZED,
+          "Invalid username or password"
+      ));
     
     // Validate the password using the injected passwordEncoder
     if (!passwordEncoder.matches(password, foundUser.getPassword())) {
-        throw new RuntimeException("Invalid password");
+        throw new ResponseStatusException(
+          HttpStatus.UNAUTHORIZED,
+          "Invalid username or password"
+      );
     }
     // Generate the JWT token
     return JWTUtil.generateToken(username);
@@ -79,16 +87,18 @@ public class UserService {
     //change username
     @Transactional
     public String changeUsername(String username){
-        Validations.emptyFieldValidation(username, "Username");
         if (userRepository.existsByUsername(username)) {
-        throw new RuntimeException("Username already taken");
+        throw new ResponseStatusException(
+        HttpStatus.CONFLICT,
+        "Username already taken"
+        );
         }
+        
         User user = SecurityUtil.getUser(userRepository);
         user.setUsername(username);
         userRepository.save(user);
-        String token = JWTUtil.generateToken(username);
-        return token;
-        
+        return JWTUtil.generateToken(username);
+  
     }
     
     //change password

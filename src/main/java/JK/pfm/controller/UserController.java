@@ -1,6 +1,9 @@
 package jk.pfm.controller;
 
+import JK.pfm.dto.ChangeUsernameDto;
+import JK.pfm.dto.UserDto;
 import JK.pfm.dto.UserLoginRequest;
+import JK.pfm.dto.UserRegistrationDto;
 import JK.pfm.dto.changePasswordRequestDTO;
 import JK.pfm.model.User;
 import JK.pfm.repository.UserRepository;
@@ -12,6 +15,8 @@ import JK.pfm.service.UserService;
 import JK.pfm.util.SecurityUtil;
 import java.util.Map;
 import jakarta.validation.*;
+import java.net.URI;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 
 @RestController
@@ -26,18 +31,24 @@ public class UserController {
       
     // Register new user
     @PostMapping("/register")
-    public ResponseEntity<String> registerUser(@RequestBody User user) {
-        try {
-            userService.saveUser(user);
-            return new ResponseEntity<>("User registered successfully", HttpStatus.CREATED);
-        } catch (RuntimeException e) {
-            return new ResponseEntity<>(e.getMessage(), HttpStatus.BAD_REQUEST);
-        }
+    public ResponseEntity<UserDto> registerUser(@Valid @RequestBody UserRegistrationDto dto) {
+        User user = userService.saveUser(dto);
+        
+        URI location = ServletUriComponentsBuilder
+        .fromCurrentRequest()                
+        .path("/{id}")
+        .buildAndExpand(user.getId())     
+        .toUri();
+        
+        UserDto body = new UserDto(user.getId(), user.getUsername());
+        return ResponseEntity
+        .created(location)
+        .body(body);
     }
 
     // Login user
     @PostMapping("/login")
-    public ResponseEntity<String> loginUser(@RequestBody UserLoginRequest request) {
+    public ResponseEntity<String> loginUser(@Valid @RequestBody UserLoginRequest request) {
         String token = userService.login(request.getUsername(), request.getPassword());
         return ResponseEntity.ok("Bearer " + token);
     }
@@ -51,8 +62,8 @@ public class UserController {
     
     //change username
     @PatchMapping("/change-username")
-    public ResponseEntity<Map<String, String>> changeName(@RequestBody Map<String, String> request){
-        String token = userService.changeUsername(request.get("username"));
+    public ResponseEntity<Map<String, String>> changeName(@Valid @RequestBody ChangeUsernameDto request){
+        String token = userService.changeUsername(request.getUsername());
         return ResponseEntity.ok(Map.of("token", token));
     }
     
