@@ -1,15 +1,17 @@
 package JK.pfm.controller;
 
 import JK.pfm.dto.CategoryListDto;
+import JK.pfm.dto.CategoryNameDto;
 import JK.pfm.model.Category;
 import JK.pfm.service.CategoryService;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
+
 
 @RestController
 @RequestMapping("/api/categories")
@@ -34,10 +36,8 @@ public class CategoryController {
 
     //Create category
     @PostMapping
-    public ResponseEntity<Category> createCategory(@RequestBody Map<String, String> request) {
-        String name = request.get("name");
-        Category savedCategory = categoryService.saveCategory(name);
-        return ResponseEntity.ok(savedCategory);
+    public ResponseEntity<Category> createCategory(@Valid @RequestBody CategoryNameDto request) {
+        return ResponseEntity.ok(categoryService.saveCategory(request.getName()));
     }
     
     //Set active/inactive by ID, controller for settings

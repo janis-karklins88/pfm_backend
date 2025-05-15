@@ -2,25 +2,18 @@ package JK.pfm.controller;
 
 import JK.pfm.dto.SavingGoalCreation;
 import JK.pfm.dto.SavingsFundTransferDTO;
-import JK.pfm.model.Account;
-
+import JK.pfm.dto.UpdateSavingsAmountDto;
 import JK.pfm.model.SavingsGoal;
-import JK.pfm.model.User;
-import JK.pfm.repository.AccountRepository;
-import JK.pfm.repository.UserRepository;
-
 import JK.pfm.service.SavingsGoalService;
 import JK.pfm.util.SecurityUtil;
-import JK.pfm.util.Validations;
+import jakarta.validation.Valid;
 import java.math.BigDecimal;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
+
 
 
 @RestController
@@ -29,38 +22,23 @@ public class SavingsGoalController {
 
     @Autowired
     private SavingsGoalService savingsGoalService;
-    
-    @Autowired
-    private AccountRepository accountRepository;
-    
-    @Autowired 
-    private UserRepository userRepository;
-    
-    
 
     //Get all saving goals
     @GetMapping
     public ResponseEntity<List<SavingsGoal>> getAllSavingsGoals() {
-        //get user
-        long userId = SecurityUtil.getUserId();
-        List<SavingsGoal> goals = savingsGoalService.getAllSavingsGoals(userId);
-        return ResponseEntity.ok(goals);
+        return ResponseEntity.ok(savingsGoalService.getAllSavingsGoals(SecurityUtil.getUserId()));
     }
     
     //get all savings balance
     @GetMapping("savings-balance")
     public ResponseEntity<BigDecimal> getTotalBalance() {
-        BigDecimal sum = savingsGoalService.getTotalBalance();
-        return ResponseEntity.ok(sum);
+        return ResponseEntity.ok(savingsGoalService.getTotalBalance());
     }
 
     //Create saving goal
     @PostMapping
-    public ResponseEntity<SavingsGoal> createSavingsGoal(@RequestBody SavingGoalCreation request) {
-        User user = SecurityUtil.getUser(userRepository);
-        SavingsGoal goal = new SavingsGoal(request.getName(), request.getTargetAmount(), request.getDescription(), user);
-        SavingsGoal savedGoal = savingsGoalService.saveSavingsGoal(goal);
-        return ResponseEntity.ok(savedGoal);
+    public ResponseEntity<SavingsGoal> createSavingsGoal(@Valid @RequestBody SavingGoalCreation request) {
+        return ResponseEntity.ok(savingsGoalService.saveSavingsGoal(request));
     }
 
     //Get saving goal by id
@@ -74,18 +52,14 @@ public class SavingsGoalController {
     //delete saving goal by id
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteSavingsGoal(@PathVariable Long id) {
-        Long userId = SecurityUtil.getUserId();
-        savingsGoalService.deleteSavingsGoal(id, userId);
+        savingsGoalService.deleteSavingsGoal(id);
         return ResponseEntity.noContent().build();
     }
     
     //update saving goal
     @PatchMapping("/{id}/amount")
-    public ResponseEntity<SavingsGoal> updateSavingGoalAmount(@PathVariable Long id, @RequestBody Map<String, BigDecimal> request){
-        BigDecimal newAmount = request.get("amount");
-        Validations.numberCheck(newAmount, "amount");
-        SavingsGoal updateSavingsGoal = savingsGoalService.updateSavingsGoalAmount(id, newAmount);
-        return ResponseEntity.ok(updateSavingsGoal);
+    public ResponseEntity<SavingsGoal> updateSavingGoalAmount(@PathVariable Long id,@Valid @RequestBody UpdateSavingsAmountDto request){
+        return ResponseEntity.ok(savingsGoalService.updateSavingsGoalAmount(id, request));
     }
     
     //add/remove saved ammount
@@ -93,19 +67,12 @@ public class SavingsGoalController {
     public ResponseEntity<SavingsGoal> transferFundsSavingsGoal(
             @PathVariable Long id, 
             @RequestBody SavingsFundTransferDTO request) {
-        //get user id
-        Long userId = SecurityUtil.getUserId();
-        // Load the account
-        Optional<Account> accOpt = accountRepository.findByUserIdAndNameAndActiveTrue(userId, request.getAccountName());
-
-        SavingsGoal updatedGoal = savingsGoalService.transferFunds(id, request.getAmount(), request.getType(), accOpt);
-        return ResponseEntity.ok(updatedGoal);
+        return ResponseEntity.ok(savingsGoalService.transferFunds(id, request));
     }
     
     //total net deposits
     @GetMapping("net-balance")
     public ResponseEntity<Map<String, BigDecimal>> getNetMonthlyBalance() {
-        Map<String, BigDecimal> netBalance = savingsGoalService.getNetMonthlyBalance();
-        return ResponseEntity.ok(netBalance);
+        return ResponseEntity.ok(savingsGoalService.getNetMonthlyBalance());
     }
 }

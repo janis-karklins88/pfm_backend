@@ -8,14 +8,13 @@ import JK.pfm.repository.CategoryRepository;
 import JK.pfm.repository.UserCategoryPreferenceRepository;
 import JK.pfm.repository.UserRepository;
 import JK.pfm.util.SecurityUtil;
-import JK.pfm.util.Validations;
 import jakarta.transaction.Transactional;
-import java.util.ArrayList;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-
 import java.util.List;
 import java.util.stream.Collectors;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
 
 @Service
 public class CategoryService {
@@ -55,14 +54,19 @@ public class CategoryService {
 
     //saving category
     public Category saveCategory(String name) {
-        Validations.emptyFieldValidation(name, "name");
-        if(name.equals("Savings") || name.equals("Opening Account")){
-            throw new IllegalArgumentException("Choose different name for category");
+        if(name.equals("Savings") || name.equals("Opening Account") || name.equals("Fund Transfer")){
+            throw new ResponseStatusException(
+                HttpStatus.CONFLICT,
+                "Choose different name"
+            );
         }
         
         User user = SecurityUtil.getUser(userRepository);
         if (userCategoryPreferenceRepository.existsByUserAndCategory_NameIgnoreCase(user, name)) {
-        throw new IllegalArgumentException("Category with this name already exists.");
+        throw new ResponseStatusException(
+                HttpStatus.CONFLICT,
+                "Category already exists"
+            );
     }
         
         Category category = new Category(name);
@@ -81,7 +85,10 @@ public class CategoryService {
     public void updateCategoryVisibility(Long categoryId, boolean active) {
         UserCategoryPreference pref = 
                 userCategoryPreferenceRepository.findByUserIdAndCategoryId(SecurityUtil.getUserId(), categoryId)
-                        .orElseThrow(() -> new RuntimeException("User preference not found"));
+                        .orElseThrow(() -> new ResponseStatusException(
+                HttpStatus.NOT_FOUND,
+                "Category not found"
+            ));
         pref.setActive(active);
         userCategoryPreferenceRepository.save(pref);
     }

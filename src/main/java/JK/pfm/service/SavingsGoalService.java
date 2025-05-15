@@ -1,27 +1,32 @@
 package JK.pfm.service;
 
+import JK.pfm.dto.SavingGoalCreation;
+import JK.pfm.dto.SavingsFundTransferDTO;
+import JK.pfm.dto.UpdateSavingsAmountDto;
 import JK.pfm.model.Account;
 import JK.pfm.model.Category;
 import JK.pfm.model.SavingsGoal;
 import JK.pfm.model.Transaction;
+import JK.pfm.repository.AccountRepository;
 import JK.pfm.repository.CategoryRepository;
 import JK.pfm.repository.SavingsGoalRepository;
 import JK.pfm.repository.TransactionRepository;
+import JK.pfm.repository.UserRepository;
 import JK.pfm.specifications.SavingsGoalSpecification;
 import JK.pfm.util.AccountUtil;
 import JK.pfm.util.SecurityUtil;
-import JK.pfm.util.Validations;
 import jakarta.transaction.Transactional;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.LinkedHashMap;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
 
 @Service
 public class SavingsGoalService {
@@ -36,6 +41,10 @@ public class SavingsGoalService {
     private TransactionService transactionService;
     @Autowired 
     private AccountUtil accountUtil;
+    @Autowired 
+    private UserRepository userRepository;
+    @Autowired
+    private AccountRepository accountRepository;
 
     //getting all saving goals
     public List<SavingsGoal> getAllSavingsGoals(Long userId) {
@@ -50,13 +59,13 @@ public class SavingsGoalService {
     }
 
     //saving saving goals
-    public SavingsGoal saveSavingsGoal(SavingsGoal goal) {
-        Validations.emptyFieldValidation(goal.getName(), "Name");
-        Validations.numberCheck(goal.getTargetAmount(), "Target amount");
-        Validations.negativeCheck(goal.getTargetAmount(), "Target amount");
-        Validations.numberCheck(goal.getCurrentAmount(), "Current amount");
-        Validations.negativeCheck(goal.getCurrentAmount(), "Current amount");
-        Validations.checkObj(goal.getUser(), "account");
+    public SavingsGoal saveSavingsGoal(SavingGoalCreation request) {
+        SavingsGoal goal = new SavingsGoal(
+                request.getName(), 
+                request.getTargetAmount(), 
+                request.getDescription(), 
+                SecurityUtil.getUser(userRepository)
+                );
         return savingsGoalRepository.save(goal);
     }
 
@@ -68,91 +77,117 @@ public class SavingsGoalService {
 
     //deleting saving goal
     @Transactional
-    public void deleteSavingsGoal(Long id, Long userId) {
-        Optional<SavingsGoal> savingsGoalOpt = savingsGoalRepository.findById(id);
-        if (savingsGoalOpt.isEmpty()) {
-           throw new RuntimeException("Savings goal not found!");
-        }
-        //check ownership
-        SavingsGoal savingsGoal = savingsGoalOpt.get();
-        if(!userId.equals(savingsGoal.getUser().getId())){
-            throw new RuntimeException("Savings goal not found!");
+    public void deleteSavingsGoal(Long id) {
+        SavingsGoal savingsGoal = savingsGoalRepository.findById(id)
+        .orElseThrow(() -> new ResponseStatusException(
+                HttpStatus.NOT_FOUND,
+                "Savings goal is missing"
+            ));
+        
+        if (!savingsGoal.getUser().getId().equals(SecurityUtil.getUserId())) {
+            throw new ResponseStatusException(
+                HttpStatus.FORBIDDEN,
+                "Savings goal incorrect"
+            );
         }
     
         // Check if there is any balance remaining
         if (savingsGoal.getCurrentAmount().compareTo(BigDecimal.ZERO) != 0) {
-            throw new RuntimeException("Savings goal still has funds. Please withdraw funds before deletion.");
+            throw new ResponseStatusException(
+                HttpStatus.CONFLICT,
+                "Savings goal still has funds. Please withdraw funds before deletiont"
+            );
         }
     
     savingsGoalRepository.deleteById(id);
 }
     
     //update goal amount
-    public SavingsGoal updateSavingsGoalAmount(Long id, BigDecimal amount) {
-        Validations.numberCheck(amount, "amount");
-        Validations.negativeCheck(amount, "amount");
+    public SavingsGoal updateSavingsGoalAmount(Long id, UpdateSavingsAmountDto amount) {
         
-        Optional <SavingsGoal> savingsGoalOpt = savingsGoalRepository.findById(id);
-        if (savingsGoalOpt.isEmpty()) {
-            throw new RuntimeException("Savings goal not found!");
+        SavingsGoal savingsGoal = savingsGoalRepository.findById(id)
+        .orElseThrow(() -> new ResponseStatusException(
+                HttpStatus.NOT_FOUND,
+                "Savings goal is missing"
+            ));
+        
+        if (!savingsGoal.getUser().getId().equals(SecurityUtil.getUserId())) {
+            throw new ResponseStatusException(
+                HttpStatus.FORBIDDEN,
+                "Savings goal incorrect"
+            );
         }
-        SavingsGoal savingsGoalUpdate = savingsGoalOpt.get();
-        //check ownership
-        if(!savingsGoalUpdate.getUser().getId().equals(SecurityUtil.getUserId())){
-            throw new RuntimeException("Savings goal not found!");
-        }
-        savingsGoalUpdate.setTargetAmount(amount);
-        return savingsGoalRepository.save(savingsGoalUpdate);
+
+        savingsGoal.setTargetAmount(amount.getAmount());
+        return savingsGoalRepository.save(savingsGoal);
     }
     
     //transfer funds
     @Transactional
-    public SavingsGoal transferFunds(Long id, BigDecimal amount, String type, Optional<Account> accountOpt){
-        Validations.numberCheck(amount, "amount");
-        Validations.negativeCheck(amount, "amount");
-        //account check
-        if(accountOpt.isEmpty()){
-            throw new RuntimeException("Account not correct");
-        }
-        Account account = accountOpt.get();
+    public SavingsGoal transferFunds(Long id, SavingsFundTransferDTO request){
+        //get target account
+        Account account = accountRepository.findByUserIdAndNameAndActiveTrue(SecurityUtil.getUserId(), request.getAccountName())
+                .orElseThrow(() -> new ResponseStatusException(
+                HttpStatus.NOT_FOUND,
+                "Account not found"
+            ));
         
-        
-        Optional <SavingsGoal> savingsGoalOpt = savingsGoalRepository.findById(id);
-        if (savingsGoalOpt.isEmpty()) {
-            throw new RuntimeException("Savings goal not found!");
+        //get savings goal
+        SavingsGoal savingsGoal = savingsGoalRepository.findById(id)
+        .orElseThrow(() -> new ResponseStatusException(
+                HttpStatus.NOT_FOUND,
+                "Savings goal is missing"
+            ));
+        //check ownership
+        if (!savingsGoal.getUser().getId().equals(SecurityUtil.getUserId())) {
+            throw new ResponseStatusException(
+                HttpStatus.FORBIDDEN,
+                "Savings goal incorrect"
+            );
         }
-        SavingsGoal savingsGoal = savingsGoalOpt.get();
+        //get category for transaction
+        Category category = categoryRepository.findByName("Fund Transfer").
+                    orElseThrow(() -> new ResponseStatusException(
+                HttpStatus.NOT_FOUND,
+                "internal error"
+            ));
         
         //withdrawing
-        if(type.equalsIgnoreCase("Withdraw")){
+        if(request.getType().equalsIgnoreCase("Withdraw")){
             //check for sufficient funds
-            if (savingsGoal.getCurrentAmount().compareTo(amount) >= 0) {
+            if (savingsGoal.getCurrentAmount().compareTo(request.getAmount()) >= 0) {
             //account deposit transaction
             String description = "Withdraw from savings";
-            Optional<Category> catOpt = categoryRepository.findByName("Fund Transfer");
-            Category category = catOpt.get();
-            Transaction transaction = new Transaction(LocalDate.now(), amount, account, category, "Deposit", description);
+
+            Transaction transaction = new Transaction(LocalDate.now(), request.getAmount(), account, category, "Deposit", description);
+            
             transactionService.saveTransaction(transaction);
-            savingsGoal.setCurrentAmount(savingsGoal.getCurrentAmount().subtract(amount));
+            savingsGoal.setCurrentAmount(savingsGoal.getCurrentAmount().subtract(request.getAmount()));
         } else {
-                throw new RuntimeException("Insufficient funds");
+                throw new ResponseStatusException(
+                HttpStatus.CONFLICT,
+                "insufficient funds"
+            );
             }
         }
         //depositing
-        else if (type.equalsIgnoreCase("Deposit")) {
-            if (account.getAmount().compareTo(amount) >= 0) {
+        else if (request.getType().equalsIgnoreCase("Deposit")) {
+            if (account.getAmount().compareTo(request.getAmount()) >= 0) {
             //account expense transaction
             String description = "Deposit to savings";
-            Optional<Category> catOpt = categoryRepository.findByName("Fund Transfer");
-            Category category = catOpt.get();
-            Transaction transaction = new Transaction(LocalDate.now(), amount, account, category, "Expense", description);
+            
+            Transaction transaction = new Transaction(LocalDate.now(), request.getAmount(), account, category, "Expense", description);
+            
             transactionService.saveTransaction(transaction);
-            savingsGoal.setCurrentAmount(savingsGoal.getCurrentAmount().add(amount));
+            savingsGoal.setCurrentAmount(savingsGoal.getCurrentAmount().add(request.getAmount()));
             } else {
             throw new RuntimeException("Insufficient funds in account");
             }
         } else {
-            throw new RuntimeException("Incorrect type");
+            throw new ResponseStatusException(
+                HttpStatus.BAD_REQUEST,
+                "Incorret transaction type"
+            );
         }
         return savingsGoalRepository.save(savingsGoal);
     }
@@ -161,7 +196,7 @@ public class SavingsGoalService {
     public Map<String, BigDecimal> getNetMonthlyBalance(){
         //get user accounts
         List<Long> accountIds = accountUtil.getUserAccountIds();
-        //
+        
         Map<String, BigDecimal> breakdown = new LinkedHashMap<>();
         LocalDate today = LocalDate.now();
         
