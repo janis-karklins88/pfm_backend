@@ -12,6 +12,10 @@ public class UpdatePaymentNextDueDateDto {
     @NotNull(message = "Start date is required")
     private LocalDate nextDueDate;
     
+    public UpdatePaymentNextDueDateDto(LocalDate date) {
+        this.nextDueDate = date;
+    }
+    
     public void setNextDueDate(LocalDate date){
         this.nextDueDate = date;
     }

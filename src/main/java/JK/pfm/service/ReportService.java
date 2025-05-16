@@ -12,11 +12,9 @@ import JK.pfm.repository.SavingsGoalRepository;
 import JK.pfm.repository.TransactionRepository;
 import JK.pfm.util.AccountUtil;
 import JK.pfm.util.SecurityUtil;
-import JK.pfm.util.Validations;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
-import java.time.temporal.TemporalAdjusters;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -54,9 +52,7 @@ public class ReportService {
     /*********************************GET TOTAL SPENDING AND INCOME***************************************/
     
     public Map<String, BigDecimal> getSpendingAndIncomeSummary(LocalDate start, LocalDate end) {
-        Validations.checkDate(start);
-        Validations.checkDate(end);
-        Validations.checkStartEndDate(start, end);
+
         //get user accounts    
         List<Long> accountIds = accountUtil.getUserAccountIds();
         
@@ -88,7 +84,6 @@ public class ReportService {
     *              returns an empty list if the user has no accounts
     */
     public List<ExpenseByCategoryDTO> getSpendingByCategory(LocalDate start, LocalDate end) {
-        Validations.checkStartEndDate(start, end);
         List<Long> accountIds = accountUtil.getUserAccountIds();
         // If no accounts exist for the user, return an empty map
         if (accountIds.isEmpty()) {
@@ -110,7 +105,6 @@ public class ReportService {
     *              returns an empty list if the user has no accounts
     */
     public List<ExpenseByAccountDTO> getSpendingByAccount(LocalDate start, LocalDate end) {
-        Validations.checkStartEndDate(start, end);
         List<Long> accountIds = accountUtil.getUserAccountIds();
         // If no accounts exist for the user, return an empty map
         if (accountIds.isEmpty()) {
@@ -126,9 +120,6 @@ public class ReportService {
     /*********************************GET DAILY TRENDS****************************************/
     
     public List<DailyTrend> getDailyTrends(LocalDate start, LocalDate end) {
-        Validations.checkDate(start);
-        Validations.checkDate(end);
-        Validations.checkStartEndDate(start, end);
         // Retrieve daily transaction data grouped by date and type.
         List<Object[]> results = transactionRepository.getDailyTrends(start, end);
         Map<LocalDate, DailyTrend> trendMap = new HashMap<>();

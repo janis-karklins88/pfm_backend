@@ -2,7 +2,6 @@ package JK.pfm.service;
 
 import JK.pfm.dto.BudgetCreationRequest;
 import JK.pfm.dto.UpdateBudgetAmountDto;
-import JK.pfm.model.Account;
 import JK.pfm.model.Budget;
 import JK.pfm.model.Category;
 import JK.pfm.model.User;
@@ -13,12 +12,10 @@ import JK.pfm.repository.UserRepository;
 import JK.pfm.specifications.BudgetSpecifications;
 import JK.pfm.util.AccountUtil;
 import JK.pfm.util.SecurityUtil;
-import JK.pfm.util.Validations;
 import jakarta.transaction.Transactional;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.temporal.TemporalAdjusters;
-import java.util.ArrayList;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import java.util.List;
@@ -35,8 +32,6 @@ public class BudgetService {
     @Autowired
     private BudgetRepository budgetRepository;
     @Autowired
-    private AccountRepository accountRepository;
-    @Autowired
     private UserRepository userRepository;
     @Autowired
     private CategoryRepository categoryRepository;
@@ -46,7 +41,6 @@ public class BudgetService {
     
     //getting all budgets for user
     public List<Budget> getAllBudgets(Long userId, LocalDate filterStart, LocalDate filterEnd) {
-        Validations.checkStartEndDate(filterStart, filterEnd);
     // Start with the specification that filters budgets by user
     Specification<Budget> spec = Specification.where(BudgetSpecifications.belongsToUser(userId));
     

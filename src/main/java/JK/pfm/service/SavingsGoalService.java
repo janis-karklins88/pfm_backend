@@ -2,6 +2,7 @@ package JK.pfm.service;
 
 import JK.pfm.dto.SavingGoalCreation;
 import JK.pfm.dto.SavingsFundTransferDTO;
+import JK.pfm.dto.TransactionCreationRequest;
 import JK.pfm.dto.UpdateSavingsAmountDto;
 import JK.pfm.model.Account;
 import JK.pfm.model.Category;
@@ -159,7 +160,7 @@ public class SavingsGoalService {
             //account deposit transaction
             String description = "Withdraw from savings";
 
-            Transaction transaction = new Transaction(LocalDate.now(), request.getAmount(), account, category, "Deposit", description);
+            TransactionCreationRequest transaction = new TransactionCreationRequest(LocalDate.now(), request.getAmount(), category.getId(), account.getName(), "Deposit", description);
             
             transactionService.saveTransaction(transaction);
             savingsGoal.setCurrentAmount(savingsGoal.getCurrentAmount().subtract(request.getAmount()));
@@ -176,7 +177,7 @@ public class SavingsGoalService {
             //account expense transaction
             String description = "Deposit to savings";
             
-            Transaction transaction = new Transaction(LocalDate.now(), request.getAmount(), account, category, "Expense", description);
+            TransactionCreationRequest transaction = new TransactionCreationRequest(LocalDate.now(), request.getAmount(), category.getId(), account.getName(), "Expense", description);
             
             transactionService.saveTransaction(transaction);
             savingsGoal.setCurrentAmount(savingsGoal.getCurrentAmount().add(request.getAmount()));

@@ -13,9 +13,7 @@ import java.util.ArrayList;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
 import java.util.List;
-import java.util.Map;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 
@@ -25,17 +23,24 @@ public class RecurringExpenseController {
 
     @Autowired
     private RecurringExpenseService recurringExpenseService;
-    @Autowired 
-
     
     
     // Retrieve all recurring expenses
     @GetMapping
     public ResponseEntity<List<RecurringExpense>> getRecurringExpenses(
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
-            @RequestParam(required = false) Long categoryId,
-            @RequestParam(required = false) Long accountId) {
+            @RequestParam(name = "startDate", required = false) 
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) 
+                    LocalDate startDate,
+            
+            @RequestParam(name = "endDate", required = false) 
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) 
+                    LocalDate endDate,
+            
+            @RequestParam(name = "categoryId", required = false) 
+                    Long categoryId,
+            
+            @RequestParam(name = "accountId", required = false) 
+                    Long accountId) {
         
         Long userId = SecurityUtil.getUserId();
         

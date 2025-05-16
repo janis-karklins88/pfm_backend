@@ -3,6 +3,7 @@ package JK.pfm.service;
 import JK.pfm.dto.AccountCreationRequest;
 import JK.pfm.dto.ChangeAccountNameDto;
 import JK.pfm.dto.SavingsFundTransferDTO;
+import JK.pfm.dto.TransactionCreationRequest;
 import JK.pfm.model.Account;
 import JK.pfm.model.Category;
 import JK.pfm.model.Transaction;
@@ -60,18 +61,20 @@ public class AccountService {
         
         Account saved = accountRepository.save(account);
         
-       
+        
         //check for amount
         if (request.getAmount().compareTo(BigDecimal.ZERO) > 0) {
-            Category misc = categoryRepository
-            .findByName("Opening Balance")
-            .orElseThrow(() -> new IllegalStateException("category missing"));
+            Long categoryId = categoryRepository.findIdByName("Opening Balance").
+                orElseThrow(() -> new ResponseStatusException(
+                HttpStatus.NOT_FOUND,
+                "Category not found"
+            ));
       
-            Transaction opening = new Transaction(
+            TransactionCreationRequest opening = new TransactionCreationRequest(
             LocalDate.now(),
             request.getAmount(),
-            saved,
-            misc,
+            categoryId,
+            request.getName(),
             "Deposit",
             "Initial account opening");
             transactionService.saveTransaction(opening);
@@ -147,12 +150,12 @@ public class AccountService {
         
         //get user
         Long userId = SecurityUtil.getUserId();
-        //get cat
-       Category category = categoryRepository.findByName("Fund Transfer")
-        .orElseThrow(() -> new ResponseStatusException(
-            HttpStatus.INTERNAL_SERVER_ERROR,
-            "Fund Transfer category is missing"
-        ));
+        //get category Id
+        Long categoryId = categoryRepository.findIdByName("Fund Transfer").
+                orElseThrow(() -> new ResponseStatusException(
+                HttpStatus.NOT_FOUND,
+                "Category not found"
+            ));
        //get date
         LocalDate date = LocalDate.now();
         //amount
@@ -211,12 +214,12 @@ public class AccountService {
         }
         
         //creating transactions
-        Transaction depositTransaction = 
-            new Transaction(date, amount, depositAccount, category, "Deposit", "Fund transfer from " + withdrawAccount.getName());
+        TransactionCreationRequest depositTransaction = 
+            new TransactionCreationRequest(date, amount, categoryId, depositAccount.getName(), "Deposit", "Fund transfer from " + withdrawAccount.getName());
             transactionService.saveTransaction(depositTransaction);
             
-        Transaction withdrawTransaction = 
-            new Transaction(date, amount, withdrawAccount, category, "Expense", "Withdraw to " + depositAccount.getName());
+        TransactionCreationRequest withdrawTransaction = 
+            new TransactionCreationRequest(date, amount, categoryId, withdrawAccount.getName(), "Expense", "Withdraw to " + depositAccount.getName());
             transactionService.saveTransaction(withdrawTransaction);
             
             

@@ -1,12 +1,15 @@
 package JK.pfm.service;
 
+import JK.pfm.dto.TransactionCreationRequest;
 import JK.pfm.model.Account;
 import JK.pfm.model.Category;
 import JK.pfm.model.Transaction;
+import JK.pfm.repository.AccountRepository;
+import JK.pfm.repository.CategoryRepository;
 import JK.pfm.repository.TransactionRepository;
 import JK.pfm.specifications.TransactionSpecifications;
 import JK.pfm.util.AccountUtil;
-import JK.pfm.util.Validations;
+import JK.pfm.util.SecurityUtil;
 import jakarta.transaction.Transactional;
 import java.time.LocalDate;
 import java.util.Collections;
@@ -16,6 +19,8 @@ import org.springframework.stereotype.Service;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.domain.Sort;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
 
 @Service
 public class TransactionService {
@@ -25,30 +30,51 @@ public class TransactionService {
     
     @Autowired 
     private AccountUtil accountUtil;
+    @Autowired 
+    private AccountRepository accountRepository;
+    
+    @Autowired
+    private CategoryRepository categoryRepository;
     
     
     // Save a new transaction with validations and account balance updates
     @Transactional
-    public Transaction saveTransaction(Transaction transaction) {
-        Account account = transaction.getAccount();
+    public Transaction saveTransaction(TransactionCreationRequest request) {
+        // Retrieve the authenticated user details
+        Long userId = SecurityUtil.getUserId();
+        
+        //Lookup account
+        Account account = accountRepository.findByUserIdAndNameAndActiveTrue(userId, request.getAccountName())
+        .orElseThrow(() -> new ResponseStatusException(
+                HttpStatus.NOT_FOUND,
+                "Account missing"
+            ));
+            
+        // Lookup category
+        Category category = categoryRepository.findById(request.getCategoryId())
+        .orElseThrow(() -> new ResponseStatusException(
+                HttpStatus.NOT_FOUND,
+                "Category missing"
+            ));
+        
+        // Create transaction
+        Transaction transaction = new Transaction(
+                request.getDate(), 
+                request.getAmount(), 
+                account, 
+                category, 
+                request.getType(), 
+                request.getDescription());
     
-        // Validations
-        Validations.numberCheck(transaction.getAmount(), "Amount");
-        Validations.negativeCheck(transaction.getAmount(), "Amount");
-        Validations.checkDate(transaction.getDate());
-        Validations.checkObj(account, "account");
-        Validations.checkObj(transaction.getCategory(), "category");
-    
-        // Transaction type validation
-        if (!transaction.getType().equals("Deposit") && !transaction.getType().equals("Expense")) {
-            throw new RuntimeException("Incorrect transaction type!");
-        }
     
         // Update the account balance based on the transaction type
         if (transaction.getType().equals("Expense")) {
             // Check for sufficient funds
             if (account.getAmount().compareTo(transaction.getAmount()) < 0) {
-                throw new RuntimeException("Insufficient funds");
+                throw new ResponseStatusException(
+            HttpStatus.CONFLICT,
+            "Not enough funds"
+            );
             }
             account.setAmount(account.getAmount().subtract(transaction.getAmount()));
         } else if (transaction.getType().equals("Deposit")) {
@@ -70,20 +96,29 @@ public class TransactionService {
     
     // Delete a transaction by id, adjusting account balance before deletion
     @Transactional
-    public boolean deleteTransaction(Long id, Long userId) {
+    public void deleteTransaction(Long id) {
                
         Transaction transaction = transactionRepository.findById(id)
-        .orElseThrow(() -> new RuntimeException("Transaction not found!"));
+        .orElseThrow(() -> new ResponseStatusException(
+                HttpStatus.NOT_FOUND,
+                "Transaction not found"
+            ));
         
-        if (!transaction.getAccount().getUser().getId().equals(userId)) {
-            throw new RuntimeException("Transaction not found!");
+        if (!transaction.getAccount().getUser().getId().equals(SecurityUtil.getUserId())) {
+            throw new ResponseStatusException(
+                HttpStatus.FORBIDDEN,
+                "Transaction not found"
+            );
         }
         Category category = transaction.getCategory();
         
         if(category.getName().equals("Savings") || 
            category.getName().equals("Fund Transfer") || 
-           category.getName().equals("Initial account opening")){
-           throw new RuntimeException("Can not delete this transaction!");
+           category.getName().equals("Opening Account")){
+           throw new ResponseStatusException(
+                HttpStatus.BAD_REQUEST,
+                "Deleting prohibited"
+            );
         }
         
         //fund handling
@@ -93,12 +128,14 @@ public class TransactionService {
             account.setAmount(account.getAmount().add(transaction.getAmount()));
         } else {
             if (account.getAmount().compareTo(transaction.getAmount()) < 0) {
-                throw new RuntimeException("Insufficient funds");
+                throw new ResponseStatusException(
+                HttpStatus.CONFLICT,
+                "Insuficient funds"
+            );
             }
             account.setAmount(account.getAmount().subtract(transaction.getAmount()));
         }
         transactionRepository.deleteById(id);
-        return true;
     }
     
     // Get transactions by filters including a filter for the authenticated user
@@ -106,7 +143,7 @@ public class TransactionService {
         (LocalDate startDate, LocalDate endDate, Long categoryId, Long accountId,  Long userId, String type) {
         Specification<Transaction> spec = Specification.where(null);
 
-        Validations.checkStartEndDate(startDate, endDate);
+
     // Build the specification using our reusable methods
         if (startDate != null && endDate != null) {
             spec = spec.and(TransactionSpecifications.dateBetween(startDate, endDate));
