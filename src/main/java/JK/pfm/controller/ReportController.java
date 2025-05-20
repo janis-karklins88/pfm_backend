@@ -7,14 +7,15 @@ import JK.pfm.dto.ChangesVsLastMonthDTO;
 import JK.pfm.dto.DailyTrend;
 import JK.pfm.dto.ExpenseByAccountDTO;
 import JK.pfm.dto.ExpenseByCategoryDTO;
+import JK.pfm.dto.filters.DateRangeFilter;
 import JK.pfm.service.ReportService;
+import jakarta.validation.Valid;
 import java.math.BigDecimal;
-import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
-import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -33,40 +34,22 @@ public class ReportController {
     @GetMapping("/summary")
     
     //getting total income and expenses
-    public ResponseEntity<Map<String, BigDecimal>> getSpendingAndIncomeSummary(
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate start,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate end) {
-
-        // Option: If dates are missing, set a wide default range
-        if (start == null) {
-            start = LocalDate.of(1900, 1, 1);
-        }
-        if (end == null) {
-            end = LocalDate.now();
-        }
-        Map<String, BigDecimal> summary = reportService.getSpendingAndIncomeSummary(start, end);
+    public ResponseEntity<Map<String, BigDecimal>> getSpendingAndIncomeSummary(@Valid @ModelAttribute DateRangeFilter filter) {
+        Map<String, BigDecimal> summary = reportService.getSpendingAndIncomeSummary(filter);
         return ResponseEntity.ok(summary);
     }
     
 
     //getting expenses breakdown by category
     @GetMapping("/spending-by-category")
-    public ResponseEntity<List<ExpenseByCategoryDTO>> getSpendingByCategory(
-            @RequestParam("start") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate start,
-            @RequestParam("end") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate end) {
-        
-        List<ExpenseByCategoryDTO> breakdown = reportService.getSpendingByCategory(start, end);
-        return ResponseEntity.ok(breakdown);
+    public ResponseEntity<List<ExpenseByCategoryDTO>> getSpendingByCategory(@Valid @ModelAttribute DateRangeFilter filter) {
+        return ResponseEntity.ok(reportService.getSpendingByCategory(filter));
     }
     
     //get expense breakdown by account 
     @GetMapping("/spending-by-account")
-    public ResponseEntity<List<ExpenseByAccountDTO>> getSpendingByAccount(
-            @RequestParam("start") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate start,
-            @RequestParam("end") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate end) {
-        
-        List<ExpenseByAccountDTO> breakdown = reportService.getSpendingByAccount(start, end);
-        return ResponseEntity.ok(breakdown);
+    public ResponseEntity<List<ExpenseByAccountDTO>> getSpendingByAccount(@Valid @ModelAttribute DateRangeFilter filter) {
+        return ResponseEntity.ok(reportService.getSpendingByAccount(filter));
     }
     
     //get total user balance
@@ -79,12 +62,8 @@ public class ReportController {
     
     //get daily trend
     @GetMapping("/daily-trends")
-    public ResponseEntity<List<DailyTrend>> getDailyTrends(
-            @RequestParam("start") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate start,
-            @RequestParam("end") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate end) {
-        
-        List<DailyTrend> trends = reportService.getDailyTrends(start, end);
-        return ResponseEntity.ok(trends);
+    public ResponseEntity<List<DailyTrend>> getDailyTrends(@Valid @ModelAttribute DateRangeFilter filter) {
+        return ResponseEntity.ok(reportService.getDailyTrends(filter));
     }
     
     //getting cashflow

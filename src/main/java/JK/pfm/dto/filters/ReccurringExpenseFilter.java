@@ -9,6 +9,10 @@ public class ReccurringExpenseFilter extends DateRangeFilter {
     private Long categoryId;
     private Long accountId;
     
+    public ReccurringExpenseFilter() {
+        super();
+    }
+    
     public Long getCategoryId() {
         return categoryId;
     }

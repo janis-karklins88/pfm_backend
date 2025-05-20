@@ -18,6 +18,13 @@ public class DateRangeFilter {
         if (startDate == null || endDate == null) return true;
         return !startDate.isAfter(endDate);
     }
+    
+    public DateRangeFilter() {}
+    
+    public DateRangeFilter(LocalDate start, LocalDate end){
+        this.startDate = start;
+        this.endDate = end;
+    }
 
     //getters setters
     public LocalDate getStartDate(){

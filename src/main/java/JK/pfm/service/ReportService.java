@@ -6,6 +6,7 @@ import JK.pfm.dto.ChangesVsLastMonthDTO;
 import JK.pfm.dto.DailyTrend;
 import JK.pfm.dto.ExpenseByAccountDTO;
 import JK.pfm.dto.ExpenseByCategoryDTO;
+import JK.pfm.dto.filters.DateRangeFilter;
 import JK.pfm.model.Account;
 import JK.pfm.repository.AccountRepository;
 import JK.pfm.repository.SavingsGoalRepository;
@@ -22,7 +23,7 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import org.springframework.beans.factory.annotation.Autowired;
+import java.util.Optional;
 import org.springframework.stereotype.Service;
 
 
@@ -30,31 +31,44 @@ import org.springframework.stereotype.Service;
 public class ReportService {
 
     private final TransactionRepository transactionRepository;
-    @Autowired
-    private AccountService accountService;
-    @Autowired
-    private SavingsGoalService savingsGoalsService;
-    @Autowired
-    private AccountRepository accountRepository;
-    @Autowired
-    private SavingsGoalService savingsGoalService;
-    @Autowired
-    private SavingsGoalRepository savingsGoalRepository;
-    @Autowired 
-    private AccountUtil accountUtil;
+    private final AccountService accountService;
+    private final SavingsGoalService savingsGoalsService;
+    private final AccountRepository accountRepository;
+    private final SavingsGoalService savingsGoalService;
+    private final SavingsGoalRepository savingsGoalRepository;
+    private final AccountUtil accountUtil;
 
-    public ReportService(TransactionRepository transactionRepository) {
-        this.transactionRepository = transactionRepository;
-
+    public ReportService(
+        TransactionRepository transactionRepository,
+        AccountService accountService,
+        SavingsGoalService savingsGoalsService,
+        AccountRepository accountRepository,
+        SavingsGoalService savingsGoalService,
+        SavingsGoalRepository savingsGoalRepository,
+        AccountUtil accountUtil
+    ) {
+        this.transactionRepository    = transactionRepository;
+        this.accountService           = accountService;
+        this.savingsGoalsService      = savingsGoalsService;
+        this.accountRepository        = accountRepository;
+        this.savingsGoalService       = savingsGoalService;
+        this.savingsGoalRepository    = savingsGoalRepository;
+        this.accountUtil              = accountUtil;
     }
 
 
     /*********************************GET TOTAL SPENDING AND INCOME***************************************/
     
-    public Map<String, BigDecimal> getSpendingAndIncomeSummary(LocalDate start, LocalDate end) {
+    public Map<String, BigDecimal> getSpendingAndIncomeSummary(DateRangeFilter filter) {
 
         //get user accounts    
         List<Long> accountIds = accountUtil.getUserAccountIds();
+        //set dates, if not provided, set wide range
+        LocalDate start = Optional.ofNullable(filter.getStartDate())
+                              .orElse(LocalDate.of(1900, 1, 1));
+        LocalDate end   = Optional.ofNullable(filter.getEndDate())
+                              .orElse(LocalDate.now());
+        
         
         BigDecimal totalSpending = transactionRepository.sumByTypeAndDate("Expense", accountIds, start, end);
         BigDecimal totalIncome = transactionRepository.sumByTypeAndDate("Deposit", accountIds, start, end);
@@ -78,19 +92,19 @@ public class ReportService {
     * Retrieves the total expenses grouped by category for the current user
     * between the given start and end dates.
     *
-    * @param start the first date (inclusive) of the period to query
-    * @param end   the last date (inclusive) of the period to query
+    * @param getStartDate() the first date (inclusive) of the period to query
+    * @param getEndDate()   the last date (inclusive) of the period to query
     * @return      a List of ExpenseByCategoryDTO, one entry per category;
     *              returns an empty list if the user has no accounts
     */
-    public List<ExpenseByCategoryDTO> getSpendingByCategory(LocalDate start, LocalDate end) {
+    public List<ExpenseByCategoryDTO> getSpendingByCategory(DateRangeFilter filter) {
         List<Long> accountIds = accountUtil.getUserAccountIds();
         // If no accounts exist for the user, return an empty map
         if (accountIds.isEmpty()) {
             return Collections.emptyList();
         }
         
-        return transactionRepository.findExpensesByCategory(accountIds, start, end);
+        return transactionRepository.findExpensesByCategory(accountIds, filter.getStartDate(), filter.getEndDate());
     }
     
     
@@ -104,14 +118,14 @@ public class ReportService {
     * @return      a List of ExpenseByAccountDTO, one entry per account;
     *              returns an empty list if the user has no accounts
     */
-    public List<ExpenseByAccountDTO> getSpendingByAccount(LocalDate start, LocalDate end) {
+    public List<ExpenseByAccountDTO> getSpendingByAccount(DateRangeFilter filter) {
         List<Long> accountIds = accountUtil.getUserAccountIds();
         // If no accounts exist for the user, return an empty map
         if (accountIds.isEmpty()) {
             return Collections.emptyList();
         }
         
-        return transactionRepository.findExpensesByAccount(accountIds, start, end);
+        return transactionRepository.findExpensesByAccount(accountIds, filter.getStartDate(), filter.getEndDate());
     }
     
     
@@ -119,9 +133,9 @@ public class ReportService {
     
     /*********************************GET DAILY TRENDS****************************************/
     
-    public List<DailyTrend> getDailyTrends(LocalDate start, LocalDate end) {
+    public List<DailyTrend> getDailyTrends(DateRangeFilter filter) {
         // Retrieve daily transaction data grouped by date and type.
-        List<Object[]> results = transactionRepository.getDailyTrends(start, end);
+        List<Object[]> results = transactionRepository.getDailyTrends(filter.getStartDate(), filter.getEndDate());
         Map<LocalDate, DailyTrend> trendMap = new HashMap<>();
 
         //populating map
@@ -158,8 +172,8 @@ public class ReportService {
         LocalDate targetMonth = today.minusMonths(i);
         LocalDate startOfMonth = targetMonth.withDayOfMonth(1);
         LocalDate endOfMonth = targetMonth.withDayOfMonth(targetMonth.lengthOfMonth());
-        
-        Map<String, BigDecimal> summary = getSpendingAndIncomeSummary(startOfMonth, endOfMonth);
+        DateRangeFilter filter = new DateRangeFilter(startOfMonth, endOfMonth);
+        Map<String, BigDecimal> summary = getSpendingAndIncomeSummary(filter);
         BigDecimal inflow = summary.getOrDefault("totalIncome", BigDecimal.ZERO);
         BigDecimal outflow = summary.getOrDefault("totalSpending", BigDecimal.ZERO);
         BigDecimal netFlow = inflow.subtract(outflow);
@@ -355,8 +369,10 @@ public class ReportService {
         LocalDate endThisMonth    = today.withDayOfMonth(today.lengthOfMonth());
 
         // 2) Income & Expense
-        Map<String, BigDecimal> thisM = getSpendingAndIncomeSummary(startThisMonth, endThisMonth);
-        Map<String, BigDecimal> lastM = getSpendingAndIncomeSummary(startLastMonth, endLastMonth);
+        DateRangeFilter filterThisMonth = new DateRangeFilter(startThisMonth, endThisMonth);
+        DateRangeFilter filterLastMonth = new DateRangeFilter(startLastMonth, endLastMonth);
+        Map<String, BigDecimal> thisM = getSpendingAndIncomeSummary(filterThisMonth);
+        Map<String, BigDecimal> lastM = getSpendingAndIncomeSummary(filterLastMonth);
 
         BigDecimal thisIncome  = thisM.getOrDefault("totalIncome",  BigDecimal.ZERO);
         BigDecimal lastIncome  = lastM.getOrDefault("totalIncome",  BigDecimal.ZERO);

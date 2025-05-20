@@ -1,6 +1,7 @@
 package JK.pfm.dto.filters;
 
 import jakarta.validation.constraints.Pattern;
+import java.time.LocalDate;
 
 
 public class TransactionFilter extends DateRangeFilter {
@@ -12,6 +13,12 @@ public class TransactionFilter extends DateRangeFilter {
     
     private Long accountId;
     
+    public TransactionFilter() {
+        super();
+    }
+    
+      
+    //getters setters
     public String getType() {
         return type;
     }
