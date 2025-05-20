@@ -4,6 +4,7 @@ import JK.pfm.dto.UpdatePaymentNextDueDateDto;
 import JK.pfm.dto.RecurringExpenseCreation;
 import JK.pfm.dto.UpdatePaymentAmountDto;
 import JK.pfm.dto.UpdateRecurringExpenseAccountDto;
+import JK.pfm.dto.filters.ReccurringExpenseFilter;
 import JK.pfm.model.RecurringExpense;
 import JK.pfm.model.Transaction;
 import JK.pfm.repository.RecurringExpenseRepository;
@@ -19,8 +20,8 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.Period;
 import java.time.temporal.TemporalAmount;
+import java.util.ArrayList;
 import java.util.Collections;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -32,45 +33,74 @@ import org.springframework.web.server.ResponseStatusException;
 @Service
 public class RecurringExpenseService {
 
-    @Autowired
-    private RecurringExpenseRepository recurringExpenseRepository;
-    
-    @Autowired
-    private TransactionRepository transactionRepository;
-    
-    @Autowired
-    private AccountRepository accountRepository;
-    @Autowired
-    private CategoryRepository categoryRepository;
-    @Autowired 
-    private AccountUtil accountUtil;
-    
-    // Get all recurring expenses
-    public List<RecurringExpense> getRecurringExpensesByFilters
-        (LocalDate startDate, LocalDate endDate, Long categoryId, Long accountId, Long userId) {
-        Specification<RecurringExpense> spec = Specification.where(null);
+    private final RecurringExpenseRepository recurringExpenseRepository;
+    private final TransactionRepository transactionRepository;
+    private final AccountRepository accountRepository;
+    private final CategoryRepository categoryRepository;
+    private final AccountUtil accountUtil;
 
-    // Build the specification using our reusable methods
-        if (startDate != null && endDate != null) {
-            spec = spec.and(RecurringExpenseSpecifications.dateBetween(startDate, endDate));
-        } else if (startDate != null) {
-            spec = spec.and(RecurringExpenseSpecifications.dateGreaterThanOrEqual(startDate));
-        } else if (endDate != null) {
-            spec = spec.and(RecurringExpenseSpecifications.dateLessThanOrEqual(endDate));
+    public RecurringExpenseService(
+        RecurringExpenseRepository recurringExpenseRepository,
+        TransactionRepository transactionRepository,
+        AccountRepository accountRepository,
+        CategoryRepository categoryRepository,
+        AccountUtil accountUtil
+    ) {
+        this.recurringExpenseRepository = recurringExpenseRepository;
+        this.transactionRepository = transactionRepository;
+        this.accountRepository = accountRepository;
+        this.categoryRepository = categoryRepository;
+        this.accountUtil = accountUtil;
+    }
+    
+        // Get all recurring expenses
+        public List<RecurringExpense> getRecurringExpensesByFilters (ReccurringExpenseFilter filter) {
+            Specification<RecurringExpense> spec = Specification.where(null);
+
+        // Build the specification
+            if (filter.getStartDate() != null && filter.getEndDate() != null) {
+        spec = spec.and(
+            RecurringExpenseSpecifications.dateBetween(
+                filter.getStartDate(), 
+                filter.getEndDate()
+            )
+        );
+        } else if (filter.getStartDate() != null) {
+            spec = spec.and(
+                RecurringExpenseSpecifications.dateGreaterThanOrEqual(
+                    filter.getStartDate()
+                )
+            );
+        } else if (filter.getEndDate() != null) {
+            spec = spec.and(
+                RecurringExpenseSpecifications.dateLessThanOrEqual(
+                    filter.getEndDate()
+                )
+            );
         }
 
-        if (categoryId != null) {
-            spec = spec.and(RecurringExpenseSpecifications.categoryEquals(categoryId));
+        if (filter.getCategoryId() != null) {
+            spec = spec.and(
+                RecurringExpenseSpecifications.categoryEquals(
+                    filter.getCategoryId()
+                )
+            );
         }
 
-        if (accountId != null) {
-            spec = spec.and(RecurringExpenseSpecifications.accountEquals(accountId));
+        if (filter.getAccountId() != null) {
+            spec = spec.and(
+                RecurringExpenseSpecifications.accountEquals(
+                    filter.getAccountId()
+                )
+            );
         }
-    
-        // Always restrict transactions to the authenticated user
-        spec = spec.and(RecurringExpenseSpecifications.belongsToUser(userId));
-    
-        return recurringExpenseRepository.findAll(spec);
+        spec = spec.and(RecurringExpenseSpecifications.belongsToUser(SecurityUtil.getUserId()));
+        
+        List<RecurringExpense> expenses = recurringExpenseRepository.findAll(spec);
+        if (expenses == null) {
+            expenses = new ArrayList<>();
+        }        
+        return expenses;
 }
     
     // Save or update a recurring expense

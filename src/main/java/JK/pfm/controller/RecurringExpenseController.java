@@ -4,57 +4,50 @@ import JK.pfm.dto.UpdatePaymentNextDueDateDto;
 import JK.pfm.dto.RecurringExpenseCreation;
 import JK.pfm.dto.UpdatePaymentAmountDto;
 import JK.pfm.dto.UpdateRecurringExpenseAccountDto;
+import JK.pfm.dto.filters.ReccurringExpenseFilter;
 import JK.pfm.model.RecurringExpense;
 import JK.pfm.service.RecurringExpenseService;
 import JK.pfm.util.SecurityUtil;
 import jakarta.validation.Valid;
+import java.net.URI;
 import java.time.LocalDate;
-import java.util.ArrayList;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 @RestController
 @RequestMapping("/api/recurring-expenses")
 public class RecurringExpenseController {
 
-    @Autowired
-    private RecurringExpenseService recurringExpenseService;
+    private final RecurringExpenseService recurringExpenseService;
+    
+    public RecurringExpenseController(RecurringExpenseService service){
+        this.recurringExpenseService = service;
+    }
     
     
     // Retrieve all recurring expenses
+    /**
+    * @param filter controls date range, category and account filters
+    * @return all matching recurring expenses for the current user
+    */
     @GetMapping
-    public ResponseEntity<List<RecurringExpense>> getRecurringExpenses(
-            @RequestParam(name = "startDate", required = false) 
-            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) 
-                    LocalDate startDate,
-            
-            @RequestParam(name = "endDate", required = false) 
-            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) 
-                    LocalDate endDate,
-            
-            @RequestParam(name = "categoryId", required = false) 
-                    Long categoryId,
-            
-            @RequestParam(name = "accountId", required = false) 
-                    Long accountId) {
-        
-        Long userId = SecurityUtil.getUserId();
-        
-        List<RecurringExpense> expenses = recurringExpenseService.getRecurringExpensesByFilters(startDate, endDate, categoryId, accountId, userId);
-        if (expenses == null) {
-            expenses = new ArrayList<>();
-        }
-        return ResponseEntity.ok(expenses);
+    public ResponseEntity<List<RecurringExpense>> getRecurringExpenses(@Valid @ModelAttribute ReccurringExpenseFilter filter) {
+        return ResponseEntity.ok(recurringExpenseService.getRecurringExpensesByFilters(filter));
     }
     
     // Create a new recurring expense
     @PostMapping
     public ResponseEntity<RecurringExpense> createRecurringExpense(@Valid @RequestBody RecurringExpenseCreation request) {
-        return ResponseEntity.ok(recurringExpenseService.saveRecurringExpense(request));
+        var saved = recurringExpenseService.saveRecurringExpense(request);
+        URI uri = ServletUriComponentsBuilder.fromCurrentRequest()
+        .path("/{id}")
+        .buildAndExpand(saved.getId())
+        .toUri();
+        return ResponseEntity.created(uri).body(saved);
     }
     
     //next payments
@@ -67,9 +60,9 @@ public class RecurringExpenseController {
     
     // Delete a recurring expense by ID
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteRecurringExpense(@PathVariable Long id) {
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deleteRecurringExpense(@PathVariable Long id) {
         recurringExpenseService.deleteRecurringExpense(id);
-        return ResponseEntity.noContent().build();
     }
     
     //edit amount

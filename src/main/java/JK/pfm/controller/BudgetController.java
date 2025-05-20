@@ -5,10 +5,6 @@ import JK.pfm.service.BudgetService;
 import java.math.BigDecimal;
 import JK.pfm.dto.BudgetCreationRequest;
 import JK.pfm.dto.UpdateBudgetAmountDto;
-import JK.pfm.model.Category;
-import JK.pfm.model.User;
-import JK.pfm.repository.CategoryRepository;
-import JK.pfm.repository.UserRepository;
 import JK.pfm.util.SecurityUtil;
 import jakarta.validation.Valid;
 import java.time.LocalDate;
@@ -16,7 +12,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
-import java.util.Map;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 
@@ -27,10 +22,7 @@ public class BudgetController {
 
     @Autowired
     private BudgetService budgetService;
-    @Autowired
-    private UserRepository userRepository;
-    @Autowired
-    private CategoryRepository categoryRepository;
+
     
     //get Budgets
     @GetMapping
