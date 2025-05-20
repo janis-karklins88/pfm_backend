@@ -2,10 +2,10 @@ package JK.pfm.service;
 
 import JK.pfm.dto.BudgetCreationRequest;
 import JK.pfm.dto.UpdateBudgetAmountDto;
+import JK.pfm.dto.filters.DateRangeFilter;
 import JK.pfm.model.Budget;
 import JK.pfm.model.Category;
 import JK.pfm.model.User;
-import JK.pfm.repository.AccountRepository;
 import JK.pfm.repository.BudgetRepository;
 import JK.pfm.repository.CategoryRepository;
 import JK.pfm.repository.UserRepository;
@@ -16,7 +16,6 @@ import jakarta.transaction.Transactional;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.temporal.TemporalAdjusters;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import java.util.List;
 import java.util.Optional;
@@ -29,26 +28,40 @@ import org.springframework.web.server.ResponseStatusException;
 @Service
 public class BudgetService {
 
-    @Autowired
-    private BudgetRepository budgetRepository;
-    @Autowired
-    private UserRepository userRepository;
-    @Autowired
-    private CategoryRepository categoryRepository;
-    @Autowired 
-    private AccountUtil accountUtil;
+    private final BudgetRepository budgetRepository;
+    private final UserRepository userRepository;
+    private final CategoryRepository categoryRepository;
+    private final AccountUtil accountUtil;
+
+    public BudgetService(
+            BudgetRepository budgetRepository,
+            UserRepository userRepository,
+            CategoryRepository categoryRepository,
+            AccountUtil accountUtil
+    ) {
+        this.budgetRepository = budgetRepository;
+        this.userRepository = userRepository;
+        this.categoryRepository = categoryRepository;
+        this.accountUtil = accountUtil;
+    }
 
     
     //getting all budgets for user
-    public List<Budget> getAllBudgets(Long userId, LocalDate filterStart, LocalDate filterEnd) {
+    public List<Budget> getAllBudgets(DateRangeFilter filter) {
     // Start with the specification that filters budgets by user
-    Specification<Budget> spec = Specification.where(BudgetSpecifications.belongsToUser(userId));
+    Specification<Budget> spec = Specification.where(BudgetSpecifications.belongsToUser(SecurityUtil.getUserId()));
     
     // If date filtering is provided, combine it using 'and'
-    if (filterStart != null && filterEnd != null) {
-        spec = spec.and(BudgetSpecifications.activeBetween(filterStart, filterEnd));
+    if (filter.getStartDate() != null && filter.getEndDate() != null) {
+        spec = spec.and(BudgetSpecifications.activeBetween(filter.getStartDate(), filter.getEndDate()));
     }
-    
+    else if (filter.getStartDate() != null) {
+        spec = spec.and(BudgetSpecifications.startDateOnOrAfter(filter.getStartDate()));
+    }
+    else if (filter.getEndDate() != null) {
+        spec = spec.and(BudgetSpecifications.endDateOnOrBefore(filter.getEndDate()));
+    }
+
     return budgetRepository.findAll(spec);
 }
 

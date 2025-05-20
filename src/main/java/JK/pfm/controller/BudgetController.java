@@ -5,14 +5,11 @@ import JK.pfm.service.BudgetService;
 import java.math.BigDecimal;
 import JK.pfm.dto.BudgetCreationRequest;
 import JK.pfm.dto.UpdateBudgetAmountDto;
-import JK.pfm.util.SecurityUtil;
+import JK.pfm.dto.filters.DateRangeFilter;
 import jakarta.validation.Valid;
-import java.time.LocalDate;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
-import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 
 
@@ -20,20 +17,16 @@ import org.springframework.http.HttpStatus;
 @RequestMapping("/api/budgets")
 public class BudgetController {
 
-    @Autowired
-    private BudgetService budgetService;
+    private final BudgetService budgetService;
+    public BudgetController(BudgetService service){
+        this.budgetService = service;
+    }
 
     
     //get Budgets
     @GetMapping
-    public ResponseEntity<List<Budget>> getAllBudgets(
-        @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate filterStart,
-        @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate filterEnd) {
-
-    Long userId = SecurityUtil.getUserId();
-
-    List<Budget> budgets = budgetService.getAllBudgets(userId, filterStart, filterEnd);
-    return ResponseEntity.ok(budgets);
+    public ResponseEntity<List<Budget>> getAllBudgets(@Valid @ModelAttribute DateRangeFilter filter) {
+    return ResponseEntity.ok(budgetService.getAllBudgets(filter));
 }
 
     //create budget

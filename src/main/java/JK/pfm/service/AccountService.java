@@ -5,8 +5,6 @@ import JK.pfm.dto.ChangeAccountNameDto;
 import JK.pfm.dto.SavingsFundTransferDTO;
 import JK.pfm.dto.TransactionCreationRequest;
 import JK.pfm.model.Account;
-import JK.pfm.model.Category;
-import JK.pfm.model.Transaction;
 import JK.pfm.repository.AccountRepository;
 import JK.pfm.repository.CategoryRepository;
 import JK.pfm.repository.UserRepository;
@@ -14,7 +12,6 @@ import JK.pfm.util.SecurityUtil;
 import jakarta.transaction.Transactional;
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import java.util.List;
 import org.springframework.http.HttpStatus;
@@ -23,20 +20,27 @@ import org.springframework.web.server.ResponseStatusException;
 @Service
 public class AccountService {
 
-    @Autowired
-    private AccountRepository accountRepository;
-    @Autowired
-    private UserRepository userRepository;
-    @Autowired
-    private CategoryRepository categoryRepository;
-    @Autowired
-    private TransactionService transactionService;
+    private final AccountRepository accountRepository;
+    private final UserRepository userRepository;
+    private final CategoryRepository categoryRepository;
+    private final TransactionService transactionService;
+
+    public AccountService(
+            AccountRepository accountRepository,
+            UserRepository userRepository,
+            CategoryRepository categoryRepository,
+            TransactionService transactionService
+    ) {
+        this.accountRepository = accountRepository;
+        this.userRepository = userRepository;
+        this.categoryRepository = categoryRepository;
+        this.transactionService = transactionService;
+    }
     
 
     
     //getting accounts for user
     public List<Account> getAccountsForUser(Long userId) {
-      
         return accountRepository.findByUserIdAndActiveTrue(userId);
     }
 
@@ -44,8 +48,7 @@ public class AccountService {
     @Transactional
     public Account saveAccount(AccountCreationRequest request) {
 
-        Long userId = SecurityUtil.getUserId();
-        
+        Long userId = SecurityUtil.getUserId();        
         //check if account already exist
         if (accountRepository.findByUserIdAndNameAndActiveTrue(userId, request.getName()).isPresent()) {
             throw new ResponseStatusException(

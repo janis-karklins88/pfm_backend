@@ -8,17 +8,23 @@ import JK.pfm.service.AccountService;
 import JK.pfm.util.SecurityUtil;
 import jakarta.validation.Valid;
 import java.math.BigDecimal;
+import java.net.URI;
 import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 @RestController
 @RequestMapping("/api/accounts")
 public class AccountController {
 
-    @Autowired
-    private AccountService accountService;
+    private final AccountService accountService;
+    
+    public AccountController(AccountService service){
+        this.accountService = service;
+    }
     
 
     
@@ -40,15 +46,19 @@ public class AccountController {
     // Create a new account for the authenticated user
     @PostMapping
     public ResponseEntity<Account> createAccount(@Valid @RequestBody AccountCreationRequest request) {
-        Account savedAccount = accountService.saveAccount(request);
-        return ResponseEntity.ok(savedAccount);
+       var savedAccount = accountService.saveAccount(request);
+       URI uri = ServletUriComponentsBuilder.fromCurrentRequest()
+        .path("/{id}")
+        .buildAndExpand(savedAccount.getId())
+        .toUri();
+       return ResponseEntity.created(uri).body(savedAccount);
     }
 
     // Delete account
     @DeleteMapping("{id}")
-    public ResponseEntity<Void> deleteAccount(@PathVariable Long id) {
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deleteAccount(@PathVariable Long id) {
         accountService.deleteAccount(id);
-        return ResponseEntity.noContent().build();
     }
     
     // Update account name

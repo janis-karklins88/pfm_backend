@@ -7,14 +7,11 @@ import JK.pfm.dto.UpdateRecurringExpenseAccountDto;
 import JK.pfm.dto.filters.ReccurringExpenseFilter;
 import JK.pfm.model.RecurringExpense;
 import JK.pfm.service.RecurringExpenseService;
-import JK.pfm.util.SecurityUtil;
 import jakarta.validation.Valid;
 import java.net.URI;
-import java.time.LocalDate;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
-import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 

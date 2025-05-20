@@ -23,4 +23,19 @@ public class BudgetSpecifications {
                 cb.greaterThanOrEqualTo(root.get("endDate"), filterStart)
             );
     }
+    
+    /** Budgets whose startDate is on or after the filter’s startDate. */
+    public static Specification<Budget> startDateOnOrAfter(LocalDate startDate) {
+        return (root, query, cb) ->
+            cb.greaterThanOrEqualTo(root.get("startDate"), startDate);
+    }
+    
+    /** Budgets whose endDate is on or before the filter’s endDate. */
+    public static Specification<Budget> endDateOnOrBefore(LocalDate endDate) {
+        return (root, query, cb) ->
+            cb.lessThanOrEqualTo(root.get("endDate"), endDate);
+    }
+
+
+    
 }
