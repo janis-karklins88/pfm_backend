@@ -7,10 +7,11 @@ import JK.pfm.dto.BudgetCreationRequest;
 import JK.pfm.dto.UpdateBudgetAmountDto;
 import JK.pfm.dto.filters.DateRangeFilter;
 import jakarta.validation.Valid;
+import java.net.URI;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
-import org.springframework.http.HttpStatus;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 
 @RestController
@@ -32,8 +33,12 @@ public class BudgetController {
     //create budget
     @PostMapping
     public ResponseEntity<Budget> createBudget(@Valid @RequestBody BudgetCreationRequest request) {
-        
-        return ResponseEntity.status(HttpStatus.CREATED).body(budgetService.saveBudget(request));
+        var budget = budgetService.saveBudget(request);
+        URI uri = ServletUriComponentsBuilder.fromCurrentRequest()
+        .path("/{id}")
+        .buildAndExpand(budget.getId())
+        .toUri();
+        return ResponseEntity.created(uri).body(budget);
     }
 
     @DeleteMapping("/{id}")

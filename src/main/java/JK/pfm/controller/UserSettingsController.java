@@ -17,7 +17,6 @@ public class UserSettingsController {
     
     private final UserSettingsService settingsService;
 
-    // Constructor-inject only the service
     public UserSettingsController(UserSettingsService settingsService) {
         this.settingsService = settingsService;
     }

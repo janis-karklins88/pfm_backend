@@ -22,6 +22,7 @@ import java.util.Optional;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.http.HttpStatus;
 import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.server.ResponseStatusException;
 
 
@@ -84,22 +85,13 @@ public class BudgetService {
     }
 
     //deleting budget
+    @PreAuthorize("@securityUtil.isCurrentUserBudget(#budgetId)")
     public boolean deleteBudgetForUser(Long budgetId) {
         Budget budget = budgetRepository.findById(budgetId)
         .orElseThrow(() -> new ResponseStatusException(
                 HttpStatus.NOT_FOUND,
                 "Budget not found"
             ));
-        
-        Long userId = SecurityUtil.getUserId();
-        // Check if the budget belongs to the authenticated user
-        if (!budget.getUser().getId().equals(userId)) {
-            throw new ResponseStatusException(
-                HttpStatus.FORBIDDEN,
-                "Budget not found"
-            );
-        }
-
         budgetRepository.delete(budget);
         return true;
 }
@@ -111,6 +103,7 @@ public class BudgetService {
     }
     
     //update amount
+    @PreAuthorize("@securityUtil.isCurrentUserBudget(#id)")
     @Transactional
     public Budget updateBudgetAmount(Long id, UpdateBudgetAmountDto request){    
         //get budget
@@ -120,20 +113,13 @@ public class BudgetService {
                 "Budget not found"
             ));
         
-        Long userId = SecurityUtil.getUserId();
-        if (!budget.getUser().getId().equals(userId)) {
-            throw new ResponseStatusException(
-                HttpStatus.FORBIDDEN,
-                "Budget not found"
-            );
-        }
-        
         budget.setAmount(request.getAmount());
         
         return budgetRepository.save(budget);
     }
     
     //get total spent on budget
+    @PreAuthorize("@securityUtil.isCurrentUserBudget(#id)")
     public BigDecimal getTotalSpentOnBudget(Long id){
         //get budget
         Budget budget = budgetRepository.findById(id)
@@ -141,15 +127,7 @@ public class BudgetService {
                 HttpStatus.NOT_FOUND,
                 "Budget not found"
             ));
-        
-        Long userId = SecurityUtil.getUserId();
-        if (!budget.getUser().getId().equals(userId)) {
-            throw new ResponseStatusException(
-                HttpStatus.FORBIDDEN,
-                "Budget not found"
-            );
-        }
-        
+
         //get accounts for user
         List<Long> accountIds = accountUtil.getUserAccountIds();
         
@@ -196,16 +174,11 @@ public class BudgetService {
 
     
     //set monthly active/inactive
+    @PreAuthorize("@securityUtil.isCurrentUserBudget(#id)")
     public Budget updateMonthlyStatus(Long id, boolean active){
-        Long userId = SecurityUtil.getUserId();
-        
         Budget budget = budgetRepository.findById(id)
             .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Budget not found"));
-        
-        if (!budget.getUser().getId().equals(userId)) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Budget not found");
-        }
-        
+
         budget.setMonthly(active);
         budgetRepository.save(budget);
         return budget;

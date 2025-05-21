@@ -5,21 +5,26 @@ import JK.pfm.dto.CategoryNameDto;
 import JK.pfm.model.Category;
 import JK.pfm.service.CategoryService;
 import jakarta.validation.Valid;
-import org.springframework.beans.factory.annotation.Autowired;
+import java.net.URI;
+
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Map;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 
 @RestController
 @RequestMapping("/api/categories")
 public class CategoryController {
 
-    @Autowired
-    private CategoryService categoryService;
+
+    private final CategoryService categoryService;
     
+    public CategoryController (CategoryService service){
+        this.categoryService = service;
+    }
     //Get all active categories for user
     @GetMapping
     public ResponseEntity<List<Category>> getAllCategoriesForUser() {
@@ -37,7 +42,12 @@ public class CategoryController {
     //Create category
     @PostMapping
     public ResponseEntity<Category> createCategory(@Valid @RequestBody CategoryNameDto request) {
-        return ResponseEntity.ok(categoryService.saveCategory(request.getName()));
+        var cat = categoryService.saveCategory(request.getName());
+        URI uri = ServletUriComponentsBuilder.fromCurrentRequest()
+        .path("/{id}")
+        .buildAndExpand(cat.getId())
+        .toUri();
+        return ResponseEntity.created(uri).body(cat);
     }
     
     //Set active/inactive by ID, controller for settings

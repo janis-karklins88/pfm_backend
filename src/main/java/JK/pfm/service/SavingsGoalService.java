@@ -7,7 +7,6 @@ import JK.pfm.dto.UpdateSavingsAmountDto;
 import JK.pfm.model.Account;
 import JK.pfm.model.Category;
 import JK.pfm.model.SavingsGoal;
-import JK.pfm.model.Transaction;
 import JK.pfm.repository.AccountRepository;
 import JK.pfm.repository.CategoryRepository;
 import JK.pfm.repository.SavingsGoalRepository;
@@ -20,32 +19,43 @@ import jakarta.transaction.Transactional;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.LinkedHashMap;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.server.ResponseStatusException;
 
 @Service
 public class SavingsGoalService {
 
-    @Autowired
-    private SavingsGoalRepository savingsGoalRepository;
-    @Autowired
-    private TransactionRepository transactionRepository;
-    @Autowired
-    private CategoryRepository categoryRepository;
-    @Autowired
-    private TransactionService transactionService;
-    @Autowired 
-    private AccountUtil accountUtil;
-    @Autowired 
-    private UserRepository userRepository;
-    @Autowired
-    private AccountRepository accountRepository;
+    private final SavingsGoalRepository savingsGoalRepository;
+    private final TransactionRepository transactionRepository;
+    private final CategoryRepository categoryRepository;
+    private final TransactionService transactionService;
+    private final AccountUtil accountUtil;
+    private final UserRepository userRepository;
+    private final AccountRepository accountRepository;
+
+    public SavingsGoalService(
+            SavingsGoalRepository savingsGoalRepository,
+            TransactionRepository transactionRepository,
+            CategoryRepository categoryRepository,
+            TransactionService transactionService,
+            AccountUtil accountUtil,
+            UserRepository userRepository,
+            AccountRepository accountRepository
+    ) {
+        this.savingsGoalRepository = savingsGoalRepository;
+        this.transactionRepository = transactionRepository;
+        this.categoryRepository    = categoryRepository;
+        this.transactionService    = transactionService;
+        this.accountUtil           = accountUtil;
+        this.userRepository        = userRepository;
+        this.accountRepository     = accountRepository;
+    }
 
     //getting all saving goals
     public List<SavingsGoal> getAllSavingsGoals(Long userId) {
@@ -77,6 +87,7 @@ public class SavingsGoalService {
     
 
     //deleting saving goal
+    @PreAuthorize("@securityUtil.isCurrentUserSavingsGoal(#id)")
     @Transactional
     public void deleteSavingsGoal(Long id) {
         SavingsGoal savingsGoal = savingsGoalRepository.findById(id)
@@ -84,13 +95,6 @@ public class SavingsGoalService {
                 HttpStatus.NOT_FOUND,
                 "Savings goal is missing"
             ));
-        
-        if (!savingsGoal.getUser().getId().equals(SecurityUtil.getUserId())) {
-            throw new ResponseStatusException(
-                HttpStatus.FORBIDDEN,
-                "Savings goal incorrect"
-            );
-        }
     
         // Check if there is any balance remaining
         if (savingsGoal.getCurrentAmount().compareTo(BigDecimal.ZERO) != 0) {
@@ -104,6 +108,7 @@ public class SavingsGoalService {
 }
     
     //update goal amount
+    @PreAuthorize("@securityUtil.isCurrentUserSavingsGoal(#id)")
     public SavingsGoal updateSavingsGoalAmount(Long id, UpdateSavingsAmountDto amount) {
         
         SavingsGoal savingsGoal = savingsGoalRepository.findById(id)
@@ -111,19 +116,13 @@ public class SavingsGoalService {
                 HttpStatus.NOT_FOUND,
                 "Savings goal is missing"
             ));
-        
-        if (!savingsGoal.getUser().getId().equals(SecurityUtil.getUserId())) {
-            throw new ResponseStatusException(
-                HttpStatus.FORBIDDEN,
-                "Savings goal incorrect"
-            );
-        }
 
         savingsGoal.setTargetAmount(amount.getAmount());
         return savingsGoalRepository.save(savingsGoal);
     }
     
     //transfer funds
+    @PreAuthorize("@securityUtil.isCurrentUserSavingsGoal(#id)")
     @Transactional
     public SavingsGoal transferFunds(Long id, SavingsFundTransferDTO request){
         //get target account
@@ -139,13 +138,7 @@ public class SavingsGoalService {
                 HttpStatus.NOT_FOUND,
                 "Savings goal is missing"
             ));
-        //check ownership
-        if (!savingsGoal.getUser().getId().equals(SecurityUtil.getUserId())) {
-            throw new ResponseStatusException(
-                HttpStatus.FORBIDDEN,
-                "Savings goal incorrect"
-            );
-        }
+
         //get category for transaction
         Category category = categoryRepository.findByName("Fund Transfer").
                     orElseThrow(() -> new ResponseStatusException(

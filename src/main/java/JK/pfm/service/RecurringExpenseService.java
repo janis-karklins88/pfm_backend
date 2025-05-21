@@ -28,6 +28,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.server.ResponseStatusException;
 
 @Service
@@ -145,6 +146,7 @@ public class RecurringExpenseService {
     }
     
     //Update amount
+    @PreAuthorize("@securityUtil.isCurrentUserAutoPay(#id)")
     public RecurringExpense updateRecurringExpenseAmount(Long id, UpdatePaymentAmountDto request){
         
         
@@ -153,18 +155,13 @@ public class RecurringExpenseService {
                 HttpStatus.NOT_FOUND,
                 "Payment is missing"
             ));
-         
-            if (!payment.getAccount().getUser().getId().equals(SecurityUtil.getUserId())) {
-            throw new ResponseStatusException(
-                HttpStatus.FORBIDDEN,
-                "Payment incorrect"
-            );
-        }
+
         payment.setAmount(request.getAmount());
         return recurringExpenseRepository.save(payment);
     }
     
     //update date
+    @PreAuthorize("@securityUtil.isCurrentUserAutoPay(#id)")
     public RecurringExpense updateRecurringExpenseNextDueDate(Long id, UpdatePaymentNextDueDateDto date){
 
         RecurringExpense payment = recurringExpenseRepository.findById(id)
@@ -172,19 +169,14 @@ public class RecurringExpenseService {
                 HttpStatus.NOT_FOUND,
                 "Payment is missing"
             ));
-        
-        if (!payment.getAccount().getUser().getId().equals(SecurityUtil.getUserId())) {
-            throw new ResponseStatusException(
-                HttpStatus.FORBIDDEN,
-                "Payment incorrect"
-            );
-        }
+
         payment.setNextDueDate(date.getNextDueDate());
         return recurringExpenseRepository.save(payment);
     }
     
     
     //change account
+    @PreAuthorize("@securityUtil.isCurrentUserAutoPay(#id)")
     public RecurringExpense updateRecurringExpenseAccount(Long id, UpdateRecurringExpenseAccountDto request){
         Long userId = SecurityUtil.getUserId();
         Account account = accountRepository.findByUserIdAndIdAndActiveTrue(userId, request.getAccountId())
@@ -198,18 +190,13 @@ public class RecurringExpenseService {
                 HttpStatus.NOT_FOUND,
                 "Incorrect payment"
             ));
-        
-        if (!expense.getAccount().getUser().getId().equals(userId)) {
-            throw new ResponseStatusException(
-                HttpStatus.FORBIDDEN,
-                "Incorrect payment"
-            );
-        }
+
         expense.setAccount(account);
         return recurringExpenseRepository.save(expense);
     }
     
     //pause
+    @PreAuthorize("@securityUtil.isCurrentUserAutoPay(#id)")
     @Transactional
     public RecurringExpense pauseRecurringExpense(Long id) {
         RecurringExpense expense = recurringExpenseRepository.findById(id)
@@ -217,18 +204,13 @@ public class RecurringExpenseService {
                 HttpStatus.NOT_FOUND,
                 "Incorrect payment"
             ));
-        
-        if (!expense.getAccount().getUser().getId().equals(SecurityUtil.getUserId())) {
-            throw new ResponseStatusException(
-                HttpStatus.FORBIDDEN,
-                "Incorrect payment"
-            );
-        }
+
         expense.setActive(false);
         return recurringExpenseRepository.save(expense);
     }
 
     //resume, inject java.time.Clock for unit testing
+    @PreAuthorize("@securityUtil.isCurrentUserAutoPay(#id)")
     @Transactional
     public RecurringExpense resumeRecurringExpense(Long id) {
         RecurringExpense expense = recurringExpenseRepository.findById(id)
@@ -236,13 +218,6 @@ public class RecurringExpenseService {
                 HttpStatus.NOT_FOUND,
                 "Payment not found"
             ));
-        
-        if (!expense.getAccount().getUser().getId().equals(SecurityUtil.getUserId())) {
-            throw new ResponseStatusException(
-                HttpStatus.FORBIDDEN,
-                "Incorrect payment"
-            );
-        }
         
         LocalDate base = expense.getLastPayment();
         
@@ -267,19 +242,14 @@ public class RecurringExpenseService {
 
     
     // Delete a recurring expense by ID
+    @PreAuthorize("@securityUtil.isCurrentUserAutoPay(#id)")
     public void deleteRecurringExpense(Long id) {
         RecurringExpense expense = recurringExpenseRepository.findById(id)
             .orElseThrow(() -> new ResponseStatusException(
                 HttpStatus.NOT_FOUND,
                 "Payment not found"
             ));
-        
-        if (!expense.getAccount().getUser().getId().equals(SecurityUtil.getUserId())) {
-            throw new ResponseStatusException(
-                HttpStatus.FORBIDDEN,
-                "Incorrect payment"
-            );
-        }
+
         recurringExpenseRepository.deleteById(id);
 
     }

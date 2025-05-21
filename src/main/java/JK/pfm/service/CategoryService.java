@@ -9,7 +9,6 @@ import JK.pfm.repository.UserCategoryPreferenceRepository;
 import JK.pfm.repository.UserRepository;
 import JK.pfm.util.SecurityUtil;
 import jakarta.transaction.Transactional;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -19,12 +18,19 @@ import org.springframework.web.server.ResponseStatusException;
 @Service
 public class CategoryService {
 
-    @Autowired
-    private CategoryRepository categoryRepository;
-    @Autowired
-    private UserRepository userRepository;
-    @Autowired
-    private UserCategoryPreferenceRepository userCategoryPreferenceRepository;
+    private final CategoryRepository categoryRepository;
+    private final UserRepository userRepository;
+    private final UserCategoryPreferenceRepository userCategoryPreferenceRepository;
+
+    public CategoryService(
+            CategoryRepository categoryRepository,
+            UserRepository userRepository,
+            UserCategoryPreferenceRepository userCategoryPreferenceRepository
+    ) {
+        this.categoryRepository = categoryRepository;
+        this.userRepository = userRepository;
+        this.userCategoryPreferenceRepository = userCategoryPreferenceRepository;
+    }
 
     //getting all active categories for user
     public List<Category> getAllCategoriesForUser() {

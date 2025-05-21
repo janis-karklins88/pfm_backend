@@ -7,7 +7,6 @@ import JK.pfm.model.User;
 import JK.pfm.model.UserCategoryPreference;
 import JK.pfm.model.UserSettings;
 import JK.pfm.repository.CategoryRepository;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import JK.pfm.repository.UserRepository;
 import JK.pfm.repository.UserSettingsRepository;
@@ -21,17 +20,22 @@ import org.springframework.web.server.ResponseStatusException;
 
 @Service
 public class UserService {
-    @Autowired
-    private UserRepository userRepository;
-    
-    @Autowired
-    private PasswordEncoder passwordEncoder;
-    
-    @Autowired
-    private CategoryRepository categoryRepository;
-    
-    @Autowired
-    private UserSettingsRepository settingsRepository;
+    private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
+    private final CategoryRepository categoryRepository;
+    private final UserSettingsRepository settingsRepository;
+
+    public UserService(
+            UserRepository userRepository,
+            PasswordEncoder passwordEncoder,
+            CategoryRepository categoryRepository,
+            UserSettingsRepository settingsRepository
+    ) {
+        this.userRepository       = userRepository;
+        this.passwordEncoder      = passwordEncoder;
+        this.categoryRepository   = categoryRepository;
+        this.settingsRepository   = settingsRepository;
+    }
       
     
     //saving users

@@ -15,6 +15,7 @@ import java.time.LocalDate;
 import org.springframework.stereotype.Service;
 import java.util.List;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.server.ResponseStatusException;
 
 @Service
@@ -118,6 +119,7 @@ public class AccountService {
     }
     
     //updating account name
+    @PreAuthorize("@securityUtil.isCurrentUserAccount(#id)")
     @Transactional
     public Account updateAccountName(Long id, ChangeAccountNameDto request) {
         Long userId = SecurityUtil.getUserId();
@@ -127,13 +129,7 @@ public class AccountService {
                 HttpStatus.NOT_FOUND,
                 "Account not found"
             ));
-        
-        if(!account.getUser().getId().equals(userId)){
-            throw new ResponseStatusException(
-                HttpStatus.FORBIDDEN,
-                "Account not found"
-            );
-        }
+
         
         accountRepository.findByUserIdAndNameAndActiveTrue(userId, request.getName())
         .ifPresent(a -> {

@@ -8,7 +8,6 @@ import JK.pfm.dto.changePasswordRequestDTO;
 import JK.pfm.model.User;
 import JK.pfm.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import JK.pfm.service.UserService;
@@ -23,10 +22,16 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 @RequestMapping("/api/users")
 public class UserController {
     
-    @Autowired
-    private UserService userService;
-    @Autowired
-    private UserRepository userRepository;
+    private final UserService userService;
+    private final UserRepository userRepository;
+
+    public UserController(
+            UserService userService,
+            UserRepository userRepository
+    ) {
+        this.userService     = userService;
+        this.userRepository  = userRepository;
+    }
     
       
     // Register new user

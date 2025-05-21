@@ -13,28 +13,34 @@ import JK.pfm.util.SecurityUtil;
 import jakarta.transaction.Transactional;
 import java.time.LocalDate;
 import java.util.Collections;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.server.ResponseStatusException;
 
 @Service
 public class TransactionService {
 
-    @Autowired
-    private TransactionRepository transactionRepository;
-    
-    @Autowired 
-    private AccountUtil accountUtil;
-    @Autowired 
-    private AccountRepository accountRepository;
-    
-    @Autowired
-    private CategoryRepository categoryRepository;
+    private final TransactionRepository transactionRepository;
+    private final AccountUtil accountUtil;
+    private final AccountRepository accountRepository;
+    private final CategoryRepository categoryRepository;
+
+    public TransactionService(
+            TransactionRepository transactionRepository,
+            AccountUtil accountUtil,
+            AccountRepository accountRepository,
+            CategoryRepository categoryRepository
+    ) {
+        this.transactionRepository = transactionRepository;
+        this.accountUtil           = accountUtil;
+        this.accountRepository     = accountRepository;
+        this.categoryRepository    = categoryRepository;
+    }
     
     
     // Save a new transaction with validations and account balance updates
@@ -95,6 +101,7 @@ public class TransactionService {
     }
     
     // Delete a transaction by id, adjusting account balance before deletion
+    @PreAuthorize("@securityUtil.isCurrentUserTransaction(#id)")
     @Transactional
     public void deleteTransaction(Long id) {
                
@@ -103,13 +110,6 @@ public class TransactionService {
                 HttpStatus.NOT_FOUND,
                 "Transaction not found"
             ));
-        
-        if (!transaction.getAccount().getUser().getId().equals(SecurityUtil.getUserId())) {
-            throw new ResponseStatusException(
-                HttpStatus.FORBIDDEN,
-                "Transaction not found"
-            );
-        }
         Category category = transaction.getCategory();
         
         if(category.getName().equals("Savings") || 

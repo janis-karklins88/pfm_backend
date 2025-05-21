@@ -5,28 +5,35 @@ import JK.pfm.model.Transaction;
 import JK.pfm.service.TransactionService;
 import JK.pfm.util.SecurityUtil;
 import jakarta.validation.Valid;
+import java.net.URI;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 
 @RestController
 @RequestMapping("/api/transactions")
 public class TransactionController {
 
-    @Autowired
-    private TransactionService transactionService;
+    private final TransactionService transactionService;
+    
+    public TransactionController (TransactionService service){
+        this.transactionService = service;
+    }
     
     // Create transaction
     @PostMapping
     public ResponseEntity<Transaction> createTransaction(@Valid @RequestBody TransactionCreationRequest request) {
         Transaction savedTransaction = transactionService.saveTransaction(request);
-        return ResponseEntity.status(HttpStatus.CREATED).body(savedTransaction);
+        URI uri = ServletUriComponentsBuilder.fromCurrentRequest()
+        .path("/{id}")
+        .buildAndExpand(savedTransaction.getId())
+        .toUri();
+        return ResponseEntity.created(uri).body(savedTransaction);
     }
     
     // Get transaction by ID (consider adding a check that the transaction belongs to the authenticated user)

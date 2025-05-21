@@ -10,9 +10,9 @@ import jakarta.validation.Valid;
 import java.math.BigDecimal;
 import java.net.URI;
 import java.util.List;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
@@ -62,6 +62,7 @@ public class AccountController {
     }
     
     // Update account name
+    @PreAuthorize("@securityUtil.isCurrentUserAccount(#id)")
     @PatchMapping("/{id}/name")
     public ResponseEntity<Account> updateAccountName(@PathVariable Long id, @Valid @RequestBody ChangeAccountNameDto request) {
         Account updatedAccount = accountService.updateAccountName(id, request);

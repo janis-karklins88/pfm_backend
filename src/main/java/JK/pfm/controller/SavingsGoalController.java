@@ -8,11 +8,13 @@ import JK.pfm.service.SavingsGoalService;
 import JK.pfm.util.SecurityUtil;
 import jakarta.validation.Valid;
 import java.math.BigDecimal;
-import org.springframework.beans.factory.annotation.Autowired;
+import java.net.URI;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.Map;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 
 
@@ -20,8 +22,11 @@ import java.util.Map;
 @RequestMapping("/api/savings-goals")
 public class SavingsGoalController {
 
-    @Autowired
-    private SavingsGoalService savingsGoalService;
+    private final SavingsGoalService savingsGoalService;
+    
+    public SavingsGoalController (SavingsGoalService serv){
+        this.savingsGoalService =serv;
+    }
 
     //Get all saving goals
     @GetMapping
@@ -30,7 +35,7 @@ public class SavingsGoalController {
     }
     
     //get all savings balance
-    @GetMapping("savings-balance")
+    @GetMapping("/savings-balance")
     public ResponseEntity<BigDecimal> getTotalBalance() {
         return ResponseEntity.ok(savingsGoalService.getTotalBalance());
     }
@@ -38,7 +43,12 @@ public class SavingsGoalController {
     //Create saving goal
     @PostMapping
     public ResponseEntity<SavingsGoal> createSavingsGoal(@Valid @RequestBody SavingGoalCreation request) {
-        return ResponseEntity.ok(savingsGoalService.saveSavingsGoal(request));
+        var savingGoal = savingsGoalService.saveSavingsGoal(request);
+        URI uri = ServletUriComponentsBuilder.fromCurrentRequest()
+        .path("/{id}")
+        .buildAndExpand(savingGoal.getId())
+        .toUri();
+        return ResponseEntity.created(uri).body(savingGoal);
     }
 
     //Get saving goal by id
@@ -51,9 +61,9 @@ public class SavingsGoalController {
 
     //delete saving goal by id
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteSavingsGoal(@PathVariable Long id) {
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deleteSavingsGoal(@PathVariable Long id) {
         savingsGoalService.deleteSavingsGoal(id);
-        return ResponseEntity.noContent().build();
     }
     
     //update saving goal
@@ -66,7 +76,7 @@ public class SavingsGoalController {
     @PatchMapping("/{id}/transfer-funds")
     public ResponseEntity<SavingsGoal> transferFundsSavingsGoal(
             @PathVariable Long id, 
-            @RequestBody SavingsFundTransferDTO request) {
+            @Valid @RequestBody SavingsFundTransferDTO request) {
         return ResponseEntity.ok(savingsGoalService.transferFunds(id, request));
     }
     
