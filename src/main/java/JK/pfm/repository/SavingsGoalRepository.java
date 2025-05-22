@@ -1,10 +1,12 @@
 package JK.pfm.repository;
 
 import JK.pfm.model.SavingsGoal;
+import JK.pfm.model.User;
 import jakarta.transaction.Transactional;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Modifying;
@@ -49,5 +51,7 @@ public interface SavingsGoalRepository extends JpaRepository<SavingsGoal, Long>,
         @Param("userId") Long userId,
         @Param("amount") BigDecimal amount
     );
+    
+    boolean existsByUserAndNameIgnoreCase(User user, String name);
 
     }

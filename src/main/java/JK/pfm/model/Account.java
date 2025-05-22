@@ -3,6 +3,7 @@ package JK.pfm.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
+import jakarta.validation.constraints.NotNull;
 import java.math.BigDecimal;
 
 @Entity
@@ -13,6 +14,10 @@ public class Account {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+    
+    @Version
+    @NotNull
+    private Long version;
     
     private String name;
     
@@ -73,5 +78,12 @@ public class Account {
     
     public Boolean getIsActive(){
         return active;
+    }
+    
+    public Long getVersion() { 
+        return version; 
+    }
+    public void setVersion(Long version) { 
+        this.version = version; 
     }
 }

@@ -136,7 +136,7 @@ public class BudgetService {
     
     // Recreate budgets for next month
     // (switch back to cron once you’re done testing)
-    @Scheduled(fixedRate = 60_000)
+    @Scheduled(cron = "0 0 0 * * *")
     @Transactional
     public void createNextMonthBudgets() {
         // Compute date boundaries

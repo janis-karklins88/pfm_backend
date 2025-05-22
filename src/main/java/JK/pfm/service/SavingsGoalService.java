@@ -7,6 +7,7 @@ import JK.pfm.dto.UpdateSavingsAmountDto;
 import JK.pfm.model.Account;
 import JK.pfm.model.Category;
 import JK.pfm.model.SavingsGoal;
+import JK.pfm.model.User;
 import JK.pfm.repository.AccountRepository;
 import JK.pfm.repository.CategoryRepository;
 import JK.pfm.repository.SavingsGoalRepository;
@@ -66,16 +67,28 @@ public class SavingsGoalService {
     //getting total balance
     public BigDecimal getTotalBalance(){
         Long userId = SecurityUtil.getUserId();
-        return savingsGoalRepository.getTotalBalanceByUserId(userId);
+        BigDecimal balance = savingsGoalRepository.getTotalBalanceByUserId(userId);
+        return balance != null ? balance : BigDecimal.ZERO;
     }
 
     //saving saving goals
     public SavingsGoal saveSavingsGoal(SavingGoalCreation request) {
+        User user = SecurityUtil.getUser(userRepository);
+        
+        boolean already = savingsGoalRepository
+        .existsByUserAndNameIgnoreCase(user, request.getName());
+        if (already) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT, 
+                    "Savings goal with this name already exists"
+            );
+        }
+        
         SavingsGoal goal = new SavingsGoal(
                 request.getName(), 
                 request.getTargetAmount(), 
                 request.getDescription(), 
-                SecurityUtil.getUser(userRepository)
+                user
                 );
         return savingsGoalRepository.save(goal);
     }

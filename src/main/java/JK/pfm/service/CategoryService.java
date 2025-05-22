@@ -34,10 +34,7 @@ public class CategoryService {
 
     //getting all active categories for user
     public List<Category> getAllCategoriesForUser() {
-        User user = SecurityUtil.getUser(userRepository);
-        
-        List<UserCategoryPreference> preferences = userCategoryPreferenceRepository.findByUserIdAndActiveTrue(user.getId());
-    
+        List<UserCategoryPreference> preferences = userCategoryPreferenceRepository.findByUserIdAndActiveTrue(SecurityUtil.getUserId());
         return preferences.stream()
                       .map(UserCategoryPreference::getCategory)
                       .collect(Collectors.toList());
@@ -45,20 +42,12 @@ public class CategoryService {
     }
     
     //getting all categories for user
-    public List<CategoryListDto> getAllCategories() {
-        User user = SecurityUtil.getUser(userRepository);
-        
-        return userCategoryPreferenceRepository.findByUserId(user.getId())
-        .stream()
-        .map(pref -> new CategoryListDto(
-            pref.getCategory().getId(),       // supply the ID
-            pref.getCategory().getName(),
-            pref.getActive()
-        ))
-        .toList();
+    public List<CategoryListDto> getAllCategories() {        
+        return userCategoryPreferenceRepository.findCategoryListDtoByUserId(SecurityUtil.getUserId());
     }
 
     //saving category
+    @Transactional
     public Category saveCategory(String name) {
         if(name.equals("Savings") || name.equals("Opening Account") || name.equals("Fund Transfer")){
             throw new ResponseStatusException(

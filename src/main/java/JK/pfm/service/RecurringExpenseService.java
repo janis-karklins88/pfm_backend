@@ -56,7 +56,9 @@ public class RecurringExpenseService {
     
         // Get all recurring expenses
         public List<RecurringExpense> getRecurringExpensesByFilters (ReccurringExpenseFilter filter) {
-            Specification<RecurringExpense> spec = Specification.where(null);
+        Specification<RecurringExpense> spec = Specification.where(
+            RecurringExpenseSpecifications.belongsToUser(SecurityUtil.getUserId())
+        );
 
         // Build the specification
             if (filter.getStartDate() != null && filter.getEndDate() != null) {
@@ -94,9 +96,7 @@ public class RecurringExpenseService {
                     filter.getAccountId()
                 )
             );
-        }
-        spec = spec.and(RecurringExpenseSpecifications.belongsToUser(SecurityUtil.getUserId()));
-        
+        }     
         List<RecurringExpense> expenses = recurringExpenseRepository.findAll(spec);
         if (expenses == null) {
             expenses = new ArrayList<>();
@@ -105,6 +105,7 @@ public class RecurringExpenseService {
 }
     
     // Save or update a recurring expense
+    @Transactional
     public RecurringExpense saveRecurringExpense(RecurringExpenseCreation request) {
         Long userId = SecurityUtil.getUserId();
         
@@ -134,10 +135,9 @@ public class RecurringExpenseService {
         return recurringExpenseRepository.save(expense);
     }
     
-    // Get a next 3 payments
+    // Get a next 5 payments
     public List<RecurringExpense> getUpcommingRecurringExpense() {
         LocalDate todaysDate = LocalDate.now();
-        
         List<Long> accountIds = accountUtil.getUserAccountIds();
         if (accountIds.isEmpty()) {
         return Collections.emptyList();
