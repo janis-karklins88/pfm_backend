@@ -130,11 +130,12 @@ public class TransactionService {
             if (account.getAmount().compareTo(transaction.getAmount()) < 0) {
                 throw new ResponseStatusException(
                 HttpStatus.CONFLICT,
-                "Insuficient funds"
+                "Insufficient funds"
             );
             }
             account.setAmount(account.getAmount().subtract(transaction.getAmount()));
         }
+        accountRepository.save(account);
         transactionRepository.deleteById(id);
     }
     

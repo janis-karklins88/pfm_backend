@@ -34,10 +34,12 @@
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-data-jpa</artifactId>
 		</dependency>
+                
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-security</artifactId>
 		</dependency>
+                
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-web</artifactId>
@@ -48,11 +50,13 @@
 			<artifactId>mysql-connector-j</artifactId>
 			<scope>runtime</scope>
 		</dependency>
+                
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-test</artifactId>
 			<scope>test</scope>
 		</dependency>
+                
 		<dependency>
 			<groupId>org.springframework.security</groupId>
 			<artifactId>spring-security-test</artifactId>
@@ -78,9 +82,17 @@
 			<version>0.11.5</version>
 			<scope>runtime</scope>
 		</dependency>
+                
                 <dependency>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-starter-validation</artifactId>
+                </dependency>
+                
+               
+                <dependency>
+                <groupId>com.h2database</groupId>
+                <artifactId>h2</artifactId>
+                <scope>test</scope>
                 </dependency>
 
 	</dependencies>
@@ -91,6 +103,40 @@
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>
 			</plugin>
+                        
+                        <plugin>
+                            <groupId>org.jacoco</groupId>
+                            <artifactId>jacoco-maven-plugin</artifactId>
+                            <version>0.8.8</version>
+                            <configuration>
+                            <skip>true</skip>
+                            </configuration>
+                            <executions>
+                            <execution>
+                            <goals>
+                            <goal>prepare-agent</goal>
+                            </goals>
+                            </execution>
+                            <execution>
+                            <id>report</id>
+                            <phase>test</phase>
+                            <goals>
+                            <goal>report</goal>
+                            </goals>
+                            </execution>
+                            </executions>
+                        </plugin>
+                        
+                        <plugin>
+                            <groupId>org.apache.maven.plugins</groupId>
+                            <artifactId>maven-compiler-plugin</artifactId>
+                            <version>3.11.0</version>  <!-- pick the latest available -->
+                            <configuration>
+                            <!-- use your existing java.version property -->
+                            <release>${java.version}</release>
+                            </configuration>
+                        </plugin>
+
 		</plugins>
 	</build>
 
