@@ -17,12 +17,15 @@ import JK.pfm.repository.TransactionRepository;
 import JK.pfm.service.TransactionService;
 import JK.pfm.util.AccountUtil;
 import JK.pfm.util.SecurityUtil;
+import java.util.List;
 import java.util.Optional;
+import org.springframework.data.domain.Sort;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.*;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.MockedStatic;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.web.server.ResponseStatusException;
 
 @ExtendWith(MockitoExtension.class)
@@ -239,6 +242,76 @@ void deleteDeposit_insufficientFunds_throws() {
         .isInstanceOf(ResponseStatusException.class)
         .hasMessageContaining("Insufficient funds");
 }
+
+
+   
+@Test
+void saveTransaction_accountMissing_throwsNotFound() {
+    TransactionCreationRequest req = new TransactionCreationRequest(
+        LocalDate.now(),
+        new BigDecimal("25.00"),
+        dummyCategory.getId(),
+        dummyAccount.getName(),
+        "Deposit",
+        "Paycheck"
+    );
+
+    when(accountRepository.findByUserIdAndNameAndActiveTrue(1L, "Checking"))
+        .thenReturn(Optional.empty());
+
+    assertThatThrownBy(() -> service.saveTransaction(req))
+        .isInstanceOf(ResponseStatusException.class)
+        .hasMessageContaining("Account missing");
+}
+
+@Test
+void saveTransaction_categoryMissing_throwsNotFound() {
+    // Arrange
+    TransactionCreationRequest req = new TransactionCreationRequest(
+        LocalDate.now(),
+        new BigDecimal("25.00"),
+        dummyCategory.getId(),     // arbitrary
+        dummyAccount.getName(),
+        "Deposit",
+        "Paycheck"
+    );
+    
+    when(accountRepository.findByUserIdAndNameAndActiveTrue(1L, "Checking"))
+        .thenReturn(Optional.of(dummyAccount));
+    when(categoryRepository.findById(5L))
+        .thenReturn(Optional.empty());
+
+
+
+    assertThatThrownBy(() -> service.saveTransaction(req))
+        .isInstanceOf(ResponseStatusException.class)
+        .hasMessageContaining("Category missing");
+}
+
+@SuppressWarnings("unchecked")
+@Test
+void getTransactionsByFilters_delegatesWithSort() {
+  List<Transaction> fake = List.of(new Transaction(), new Transaction());
+
+  when(transactionRepository.findAll(
+      Mockito.<Specification<Transaction>>any(),
+      Mockito.any(org.springframework.data.domain.Sort.class)
+    ))
+    .thenReturn(fake);
+
+  List<Transaction> out = service.getTransactionsByFilters(
+    LocalDate.now(), LocalDate.now(), null, null, 1L, null
+  );
+
+  assertThat(out).isSameAs(fake);
+
+  // And verify with the same correct Sort class
+  verify(transactionRepository).findAll(
+    Mockito.<Specification<Transaction>>any(),
+    Mockito.any(org.springframework.data.domain.Sort.class)
+  );
+}
+
 
 
 
