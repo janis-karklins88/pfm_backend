@@ -14,6 +14,15 @@ public class AccountCreationRequest {
     @PositiveOrZero(message = "Amount cant be negative")
     private BigDecimal amount;
     
+    public AccountCreationRequest(){
+        
+    }
+    
+    public AccountCreationRequest(String name, BigDecimal amount){
+        this.name = name;
+        this.amount = amount;
+    }
+    
     
     // getters and setters
     public String getName() {
