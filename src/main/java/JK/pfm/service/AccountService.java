@@ -221,13 +221,8 @@ public class AccountService {
             new TransactionCreationRequest(date, amount, categoryId, withdrawAccount.getName(), "Expense", "Withdraw to " + depositAccount.getName());
             transactionService.saveTransaction(withdrawTransaction);
             
-            
-            Account targetAccount = accountRepository.findByUserIdAndIdAndActiveTrue(userId, accountId)
-                    .orElseThrow(() -> new ResponseStatusException(
-                HttpStatus.NOT_FOUND,
-                "Account not found"
-            ));
-        return targetAccount;
+        return request.getType().equals("Deposit")
+            ? depositAccount : withdrawAccount;
         
     }
 }

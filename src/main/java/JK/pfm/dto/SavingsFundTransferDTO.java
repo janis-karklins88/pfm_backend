@@ -18,6 +18,16 @@ public class SavingsFundTransferDTO {
     @NotBlank(message = "Account name is required")
     private String accountName;
     
+    public SavingsFundTransferDTO (){
+        
+    }
+    
+    public SavingsFundTransferDTO(BigDecimal amount, String type, String accName){
+        this.amount = amount;
+        this.type = type;
+        this.accountName = accName;
+    }
+    
     // getters and setters
     public String getAccountName() {
         return accountName;

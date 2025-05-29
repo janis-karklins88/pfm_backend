@@ -3,6 +3,7 @@ package JK.pfm;
 
 import JK.pfm.dto.AccountCreationRequest;
 import JK.pfm.dto.ChangeAccountNameDto;
+import JK.pfm.dto.SavingsFundTransferDTO;
 import JK.pfm.dto.TransactionCreationRequest;
 import JK.pfm.model.Account;
 import JK.pfm.model.Category;
@@ -16,6 +17,7 @@ import JK.pfm.service.TransactionService;
 import JK.pfm.util.SecurityUtil;
 import java.math.BigDecimal;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -31,7 +33,9 @@ import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
@@ -291,5 +295,318 @@ public class AccountServiceTest {
       a.getId().equals(id) && Boolean.FALSE.equals(a.getIsActive())
     ));
   }
+    
+    @Test
+    void fundTransfer_missingCategory(){
+        Long id = 1L;
+        var req = new SavingsFundTransferDTO(
+                new BigDecimal("100"),
+                "Withdraw",
+                "test-acc"
+        );
+        when(categoryRepository.findIdByName("Fund Transfer"))
+        .thenReturn(Optional.empty());
+              
+        assertThatThrownBy(() -> accountService.transferAccountFunds(id, req))
+        .isInstanceOf(ResponseStatusException.class)
+        .satisfies(ex -> {
+        ResponseStatusException rse = (ResponseStatusException) ex;
+        assertThat(rse.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+        assertThat(rse.getReason()).isEqualTo("Category not found");
+        });
+        
+    }
+    
+    @Test
+    void fundTransfer_incorrectType(){
+        Long id = 1L;
+        var req = new SavingsFundTransferDTO(
+                new BigDecimal("100"),
+                "incorrect-type",
+                "test-acc"
+        );
+        when(categoryRepository.findIdByName("Fund Transfer"))
+        .thenReturn(Optional.of(42L));
+        
+        assertThatThrownBy(() -> accountService.transferAccountFunds(id, req))
+        .isInstanceOf(ResponseStatusException.class)
+        .satisfies(ex -> {
+        ResponseStatusException rse = (ResponseStatusException) ex;
+        assertThat(rse.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(rse.getReason()).isEqualTo("Unknown transfer type: incorrect-type");
+        });
+        
+    }
+    
+    @Test
+    void fundTransfer_deposit_depositAccNotFound(){
+        Long id = 1L;
+        var req = new SavingsFundTransferDTO(
+                new BigDecimal("100"),
+                "Deposit",
+                "test-acc"
+        );
+        when(categoryRepository.findIdByName("Fund Transfer"))
+        .thenReturn(Optional.of(42L));
+        
+        when(accountRepository.findByUserIdAndIdAndActiveTrue(SecurityUtil.getUserId(), id))
+        .thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> accountService.transferAccountFunds(id, req))
+        .isInstanceOf(ResponseStatusException.class)
+        .satisfies(ex -> {
+        ResponseStatusException rse = (ResponseStatusException) ex;
+        assertThat(rse.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+        assertThat(rse.getReason()).isEqualTo("Account not found");
+        });
+    }
+    
+    @Test
+    void fundTransfer_deposit_withdrawAccNotFound(){
+        Long id = 1L;
+        var req = new SavingsFundTransferDTO(
+                new BigDecimal("100"),
+                "Deposit",
+                "test-acc"
+        );
+        when(categoryRepository.findIdByName("Fund Transfer"))
+        .thenReturn(Optional.of(42L));
+        
+        when(accountRepository.findByUserIdAndIdAndActiveTrue(SecurityUtil.getUserId(), id))
+        .thenReturn(Optional.of(new Account()));
+        
+        when(accountRepository.findByUserIdAndNameAndActiveTrue(SecurityUtil.getUserId(), req.getAccountName()))
+        .thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> accountService.transferAccountFunds(id, req))
+        .isInstanceOf(ResponseStatusException.class)
+        .satisfies(ex -> {
+        ResponseStatusException rse = (ResponseStatusException) ex;
+        assertThat(rse.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+        assertThat(rse.getReason()).isEqualTo("Account not found");
+        });
+    }
+    
+    @Test
+    void fundTransfer_deposit_insufficientFunds(){
+        Long id = 1L;
+        var req = new SavingsFundTransferDTO(
+                new BigDecimal("100"),
+                "Deposit",
+                "test-acc"
+        );
+        Account withdrawAcc = new Account("test-acc", new BigDecimal("50"), SecurityUtil.getUser(userRepository));
+        
+        when(categoryRepository.findIdByName("Fund Transfer"))
+        .thenReturn(Optional.of(42L));
+        
+        when(accountRepository.findByUserIdAndIdAndActiveTrue(SecurityUtil.getUserId(), id))
+        .thenReturn(Optional.of(new Account()));
+        
+        when(accountRepository.findByUserIdAndNameAndActiveTrue(SecurityUtil.getUserId(), req.getAccountName()))
+        .thenReturn(Optional.of(withdrawAcc));
+
+        assertThatThrownBy(() -> accountService.transferAccountFunds(id, req))
+        .isInstanceOf(ResponseStatusException.class)
+        .satisfies(ex -> {
+        ResponseStatusException rse = (ResponseStatusException) ex;
+        assertThat(rse.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
+        assertThat(rse.getReason()).isEqualTo("Not enough funds");
+        });
+    }
+    
+    @Test
+void fundTransfer_withdraw_withdrawAccNotFound() {
+    Long id = 1L;
+    var req = new SavingsFundTransferDTO(
+        new BigDecimal("100"),
+        "Withdraw",
+        "test-acc"
+    );
+
+    // 1) category exists
+    when(categoryRepository.findIdByName("Fund Transfer"))
+        .thenReturn(Optional.of(42L));
+
+    // 2) withdraw‐account (by ID) does NOT exist
+    when(accountRepository.findByUserIdAndIdAndActiveTrue(SecurityUtil.getUserId(), id))
+        .thenReturn(Optional.empty());
+
+    assertThatThrownBy(() -> accountService.transferAccountFunds(id, req))
+      .isInstanceOf(ResponseStatusException.class)
+      .satisfies(ex -> {
+        ResponseStatusException rse = (ResponseStatusException) ex;
+        assertThat(rse.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+        assertThat(rse.getReason()).isEqualTo("Account not found");
+      });
+}
+
+@Test
+void fundTransfer_withdraw_depositAccNotFound() {
+    Long id = 1L;
+    var req = new SavingsFundTransferDTO(
+        new BigDecimal("100"),
+        "Withdraw",
+        "test-acc"
+    );
+
+    // 1) category exists
+    when(categoryRepository.findIdByName("Fund Transfer"))
+        .thenReturn(Optional.of(42L));
+
+    // 2) withdraw‐account (by ID) exists
+    Account withdrawAcc = new Account("primary-acc", new BigDecimal("500"), SecurityUtil.getUser(userRepository));
+    when(accountRepository.findByUserIdAndIdAndActiveTrue(SecurityUtil.getUserId(), id))
+        .thenReturn(Optional.of(withdrawAcc));
+
+    // 3) deposit‐account (by name) does NOT exist
+    when(accountRepository.findByUserIdAndNameAndActiveTrue(SecurityUtil.getUserId(), req.getAccountName()))
+        .thenReturn(Optional.empty());
+
+    assertThatThrownBy(() -> accountService.transferAccountFunds(id, req))
+      .isInstanceOf(ResponseStatusException.class)
+      .satisfies(ex -> {
+        ResponseStatusException rse = (ResponseStatusException) ex;
+        assertThat(rse.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+        assertThat(rse.getReason()).isEqualTo("Account not found");
+      });
+}
+
+@Test
+void fundTransfer_withdraw_insufficientFunds() {
+    Long id = 1L;
+    var req = new SavingsFundTransferDTO(
+        new BigDecimal("100"),
+        "Withdraw",
+        "test-acc"
+    );
+
+    // 1) category exists
+    when(categoryRepository.findIdByName("Fund Transfer"))
+        .thenReturn(Optional.of(42L));
+
+    // 2) withdraw‐account (by ID) exists but has only 50
+    Account withdrawAcc = new Account("primary-acc", new BigDecimal("50"), SecurityUtil.getUser(userRepository));
+    when(accountRepository.findByUserIdAndIdAndActiveTrue(SecurityUtil.getUserId(), id))
+        .thenReturn(Optional.of(withdrawAcc));
+
+    // 3) deposit‐account (by name) exists
+    Account depositAcc = new Account("test-acc", new BigDecimal("0"), SecurityUtil.getUser(userRepository));
+    when(accountRepository.findByUserIdAndNameAndActiveTrue(SecurityUtil.getUserId(), req.getAccountName()))
+        .thenReturn(Optional.of(depositAcc));
+
+    assertThatThrownBy(() -> accountService.transferAccountFunds(id, req))
+      .isInstanceOf(ResponseStatusException.class)
+      .satisfies(ex -> {
+        ResponseStatusException rse = (ResponseStatusException) ex;
+        assertThat(rse.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
+        assertThat(rse.getReason()).isEqualTo("Not enough funds");
+      });
+}
+@Test
+void fundTransfer_deposit_happyPath(){
+    Long id = 1L;
+    var req = new SavingsFundTransferDTO(
+        new BigDecimal("100"),
+        "Deposit",
+        "test-acc"
+    );
+    // 1) category exists
+    when(categoryRepository.findIdByName("Fund Transfer"))
+        .thenReturn(Optional.of(42L));
+
+    // 2) deposit‐account (by ID)
+    Account depositAcc = new Account("primary-acc", new BigDecimal("100"), SecurityUtil.getUser(userRepository));
+    when(accountRepository.findByUserIdAndIdAndActiveTrue(SecurityUtil.getUserId(), id))
+        .thenReturn(Optional.of(depositAcc));
+
+    // 3) withdraw‐account (by name) exists
+    Account withdrawAcc = new Account("test-acc", new BigDecimal("250"), SecurityUtil.getUser(userRepository));
+    when(accountRepository.findByUserIdAndNameAndActiveTrue(SecurityUtil.getUserId(), req.getAccountName()))
+        .thenReturn(Optional.of(withdrawAcc));
+    //capture transactions
+    ArgumentCaptor<TransactionCreationRequest> txCap = 
+    ArgumentCaptor.forClass(TransactionCreationRequest.class);
+    
+    Account result = accountService.transferAccountFunds(id, req);
+    
+    assertThat(result).isSameAs(depositAcc);
+    verify(transactionService, times(2)).saveTransaction(txCap.capture());
+    List<TransactionCreationRequest> txns = txCap.getAllValues();
+    
+    // First: deposit leg
+    TransactionCreationRequest depositTx = txns.get(0);
+    assertThat(depositTx.getAmount()).isEqualByComparingTo(req.getAmount());
+    assertThat(depositTx.getCategoryId()).isEqualTo(42L);
+    assertThat(depositTx.getAccountName()).isEqualTo("primary-acc");
+    assertThat(depositTx.getType()).isEqualTo("Deposit");
+    assertThat(depositTx.getDescription())
+    .isEqualTo("Fund transfer from test-acc");
+
+    // Second: withdraw leg
+    TransactionCreationRequest withdrawTx = txns.get(1);
+    assertThat(withdrawTx.getAmount()).isEqualByComparingTo(req.getAmount());
+    assertThat(withdrawTx.getCategoryId()).isEqualTo(42L);
+    assertThat(withdrawTx.getAccountName()).isEqualTo("test-acc");
+    assertThat(withdrawTx.getType()).isEqualTo("Expense");
+    assertThat(withdrawTx.getDescription())
+    .isEqualTo("Withdraw to primary-acc");
+    
+    verify(categoryRepository).findIdByName("Fund Transfer");
+    verifyNoMoreInteractions(transactionService);
+    }
+
+    @Test
+    void fundTransfer_withdraw_happyPath(){
+    Long id = 1L;
+    var req = new SavingsFundTransferDTO(
+        new BigDecimal("100"),
+        "Withdraw",
+        "test-acc"
+    );
+    // 1) category exists
+    when(categoryRepository.findIdByName("Fund Transfer"))
+        .thenReturn(Optional.of(42L));
+
+    // 2) withdraw‐account (by ID)
+    Account withdrawAcc = new Account("primary-acc", new BigDecimal("250"), SecurityUtil.getUser(userRepository));
+    when(accountRepository.findByUserIdAndIdAndActiveTrue(SecurityUtil.getUserId(), id))
+        .thenReturn(Optional.of(withdrawAcc));
+
+    // 3) deposit‐account (by name) exists
+    Account depositAcc = new Account("test-acc", new BigDecimal("250"), SecurityUtil.getUser(userRepository));
+    when(accountRepository.findByUserIdAndNameAndActiveTrue(SecurityUtil.getUserId(), req.getAccountName()))
+        .thenReturn(Optional.of(depositAcc));
+    //capture transactions
+    ArgumentCaptor<TransactionCreationRequest> txCap = 
+    ArgumentCaptor.forClass(TransactionCreationRequest.class);
+    
+    Account result = accountService.transferAccountFunds(id, req);
+    
+    assertThat(result).isSameAs(withdrawAcc);
+    verify(transactionService, times(2)).saveTransaction(txCap.capture());
+    List<TransactionCreationRequest> txns = txCap.getAllValues();
+    
+    // First: deposit leg
+    TransactionCreationRequest depositTx = txns.get(0);
+    assertThat(depositTx.getAmount()).isEqualByComparingTo(req.getAmount());
+    assertThat(depositTx.getCategoryId()).isEqualTo(42L);
+    assertThat(depositTx.getAccountName()).isEqualTo("test-acc");
+    assertThat(depositTx.getType()).isEqualTo("Deposit");
+    assertThat(depositTx.getDescription())
+    .isEqualTo("Fund transfer from primary-acc");
+
+    // Second: withdraw leg
+    TransactionCreationRequest withdrawTx = txns.get(1);
+    assertThat(withdrawTx.getAmount()).isEqualByComparingTo(req.getAmount());
+    assertThat(withdrawTx.getCategoryId()).isEqualTo(42L);
+    assertThat(withdrawTx.getAccountName()).isEqualTo("primary-acc");
+    assertThat(withdrawTx.getType()).isEqualTo("Expense");
+    assertThat(withdrawTx.getDescription())
+    .isEqualTo("Withdraw to test-acc");
+    
+    verify(categoryRepository).findIdByName("Fund Transfer");
+    verifyNoMoreInteractions(transactionService);
+    }
   
 }
