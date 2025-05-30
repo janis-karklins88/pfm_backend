@@ -13,6 +13,11 @@ public class UserRegistrationDto {
     @Size(min = 8, message = "Password must be at least 8 characters")
     private String password;
     
+    public UserRegistrationDto(String name, String pass){
+        this.password = pass;
+        this.username = name;
+    }
+    
     public void setUsername(String name){
         this.username = name;
     }

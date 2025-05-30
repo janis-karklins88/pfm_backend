@@ -22,6 +22,7 @@ public class BudgetCreationRequest {
     
     @NotBlank(message = "Category missing")
     private Long categoryId;
+
     
     @AssertTrue(message = "End date must be on or after start date")
     public boolean isEndDateOnOrAfterStart() {
@@ -31,6 +32,15 @@ public class BudgetCreationRequest {
     
     return !endDate.isBefore(startDate);
   }
+    
+    public BudgetCreationRequest(){};
+    
+    public BudgetCreationRequest(BigDecimal amount, LocalDate start, LocalDate end, Long catId){
+        this.amount = amount;
+        this.startDate = start;
+        this.endDate = end;
+        this.categoryId = catId;
+    }
     
     // getters and setters
     public Long getCategoryId() {

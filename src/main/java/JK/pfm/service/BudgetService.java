@@ -64,7 +64,7 @@ public class BudgetService {
     }
 
     return budgetRepository.findAll(spec);
-}
+    }
 
     //saving budget
     public Budget saveBudget(BudgetCreationRequest request) {
@@ -94,7 +94,7 @@ public class BudgetService {
             ));
         budgetRepository.delete(budget);
         return true;
-}
+    }
 
 
     //getting budget by id
@@ -168,9 +168,9 @@ public class BudgetService {
             );
             next.setMonthly(true);
             budgetRepository.save(next);
+            }
         }
     }
-}
 
     
     //set monthly active/inactive

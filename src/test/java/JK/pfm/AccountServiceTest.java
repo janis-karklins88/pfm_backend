@@ -6,8 +6,6 @@ import JK.pfm.dto.ChangeAccountNameDto;
 import JK.pfm.dto.SavingsFundTransferDTO;
 import JK.pfm.dto.TransactionCreationRequest;
 import JK.pfm.model.Account;
-import JK.pfm.model.Category;
-import JK.pfm.model.Transaction;
 import JK.pfm.model.User;
 import JK.pfm.repository.AccountRepository;
 import JK.pfm.repository.CategoryRepository;
@@ -57,8 +55,6 @@ public class AccountServiceTest {
     private MockedStatic<SecurityUtil> securityUtilMock;
     private User    stubUser;
     private Account stubAccount;
-    private Category stubCategory;
-    private Transaction stubTransaction;
     private AccountCreationRequest stubRequest;
     
     

@@ -20,6 +20,12 @@ public class changePasswordRequestDTO {
     @NotBlank(message = "Please confirm new password")
     private String newPasswordCheck;
     
+    public changePasswordRequestDTO(String pass1, String pass2, String pass3){
+        this.password = pass1;
+        this.newPassword = pass2;
+        this.newPasswordCheck = pass3;
+    }
+    
     public String getPassword(){
         return password;
     }
