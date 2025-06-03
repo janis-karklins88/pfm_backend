@@ -7,8 +7,8 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 
 public interface RecurringExpenseRepository extends JpaRepository<RecurringExpense, Long>, JpaSpecificationExecutor<RecurringExpense> {
-    List<RecurringExpense> findByNextDueDateLessThanEqual(LocalDate date);
-    List<RecurringExpense> findTop5ByAccountIdInAndNextDueDateAfterOrderByNextDueDateAsc(List<Long> accountIds, LocalDate date);
+    List<RecurringExpense> findByNextDueDateLessThanEqualAndActiveTrue(LocalDate date);
+    List<RecurringExpense> findTop5ByAccountIdInAndNextDueDateAfterAndActiveTrueOrderByNextDueDateAsc(List<Long> accountIds, LocalDate date);
 
 
 }

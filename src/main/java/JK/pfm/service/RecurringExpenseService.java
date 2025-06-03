@@ -142,7 +142,7 @@ public class RecurringExpenseService {
         if (accountIds.isEmpty()) {
         return Collections.emptyList();
         }
-        return recurringExpenseRepository.findTop5ByAccountIdInAndNextDueDateAfterOrderByNextDueDateAsc(accountIds, todaysDate);
+        return recurringExpenseRepository.findTop5ByAccountIdInAndNextDueDateAfterAndActiveTrueOrderByNextDueDateAsc(accountIds, todaysDate);
     }
     
     //Update amount
@@ -266,7 +266,7 @@ public class RecurringExpenseService {
             case "ANNUALLY":
                 return currentDueDate.plusYears(1);
             default:
-                throw new RuntimeException("Unsupported frequency: " + expense.getFrequency());
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Unsupported frequency");
         }
     }
     
@@ -277,7 +277,7 @@ public class RecurringExpenseService {
         LocalDate today = LocalDate.now();
         // Fetch recurring expenses that are due today or before today
 
-        for (RecurringExpense expense : recurringExpenseRepository.findByNextDueDateLessThanEqual(today)) {
+        for (RecurringExpense expense : recurringExpenseRepository.findByNextDueDateLessThanEqualAndActiveTrue(today)) {
             Account account = expense.getAccount();
             BigDecimal amount = expense.getAmount();
             Category category = expense.getCategory();
@@ -304,4 +304,6 @@ public class RecurringExpenseService {
             recurringExpenseRepository.save(expense);
         }
     }
+    
+    
 }

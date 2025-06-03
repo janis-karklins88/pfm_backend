@@ -17,7 +17,7 @@ public class RecurringExpenseCreation {
     @PositiveOrZero(message = "Amount cant be negative")
     private BigDecimal amount;
     
-    @NotBlank(message = "Category missing")
+    @NotNull(message = "Category missing")
     private Long categoryId;
     
     @NotBlank(message = "Account name is missing")
@@ -32,6 +32,16 @@ public class RecurringExpenseCreation {
       message = "Frequency must be one of: Monthly, Weekly, Annually"
     )
     private String frequency;
+    
+    public RecurringExpenseCreation (){}
+    
+    public RecurringExpenseCreation(LocalDate start, BigDecimal a, Long catId, String accName, String freq){
+        this.startDate = start;
+        this.amount = a;
+        this.categoryId = catId;
+        this.accountName = accName;
+        this.frequency = freq;
+    }
 
     
     // getters and setters
@@ -58,7 +68,7 @@ public class RecurringExpenseCreation {
     public void setAmount(BigDecimal amount){
         this.amount = amount;
     }
-     public String getName() {
+    public String getName() {
         return name;
     }
 
@@ -81,5 +91,8 @@ public class RecurringExpenseCreation {
     public void setFrequency(String frequency) {
         this.frequency = frequency;
     }
+    
+    
+    
     
 }
