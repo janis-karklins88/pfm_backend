@@ -341,9 +341,6 @@ public class ReportService {
         LocalDate nextNextMonth = today.plusMonths(2);
         String nextNextMonthLabel = nextNextMonth.getMonth().toString().substring(0, 3);
         breakdown.put(nextNextMonthLabel, predictedExpense);
-        
-        
-
         return breakdown; 
     }
     

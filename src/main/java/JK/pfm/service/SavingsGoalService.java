@@ -118,7 +118,7 @@ public class SavingsGoalService {
         }
     
     savingsGoalRepository.deleteById(id);
-}
+    }
     
     //update goal amount
     @PreAuthorize("@securityUtil.isCurrentUserSavingsGoal(#id)")
@@ -201,15 +201,14 @@ public class SavingsGoalService {
     
     //get net savings monthly balance
     public Map<String, BigDecimal> getNetMonthlyBalance(){
-        //get user accounts
-        List<Long> accountIds = accountUtil.getUserAccountIds();
-        
         Map<String, BigDecimal> breakdown = new LinkedHashMap<>();
+        List<Long> accountIds = accountUtil.getUserAccountIds();
+        if(accountIds.isEmpty()){
+            return breakdown;
+        }
         LocalDate today = LocalDate.now();
-        
              
         for (int i = 9; i >= 0; i--) {
-
         LocalDate targetMonth = today.minusMonths(i);
         LocalDate startOfMonth = targetMonth.withDayOfMonth(1);
         LocalDate endOfMonth = targetMonth.withDayOfMonth(targetMonth.lengthOfMonth());
@@ -226,6 +225,7 @@ public class SavingsGoalService {
         }
         return breakdown;
     }
+    
     
     
     
