@@ -1,5 +1,5 @@
 
-package JK.pfm;
+package JK.pfm.service;
 
 import JK.pfm.dto.RecurringExpenseCreation;
 import JK.pfm.dto.UpdatePaymentAmountDto;

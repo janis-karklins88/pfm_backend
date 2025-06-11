@@ -1,5 +1,5 @@
 
-package JK.pfm;
+package JK.pfm.service;
 
 import JK.pfm.dto.BudgetCreationRequest;
 import JK.pfm.dto.UpdateBudgetAmountDto;

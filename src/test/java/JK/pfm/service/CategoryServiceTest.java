@@ -1,5 +1,5 @@
 
-package JK.pfm;
+package JK.pfm.service;
 
 import JK.pfm.model.Category;
 import JK.pfm.model.User;

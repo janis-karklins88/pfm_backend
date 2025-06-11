@@ -1,4 +1,4 @@
-package JK.pfm;
+package JK.pfm.service;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;

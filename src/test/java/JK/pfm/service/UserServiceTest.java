@@ -1,5 +1,5 @@
 
-package JK.pfm;
+package JK.pfm.service;
 
 import JK.pfm.dto.UserRegistrationDto;
 import JK.pfm.dto.changePasswordRequestDTO;

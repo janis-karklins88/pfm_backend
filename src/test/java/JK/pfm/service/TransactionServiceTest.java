@@ -1,4 +1,4 @@
-package JK.pfm;
+package JK.pfm.service;
 
 import JK.pfm.dto.TransactionCreationRequest;
 import static org.assertj.core.api.Assertions.*;

@@ -1,4 +1,4 @@
-package JK.pfm;
+package JK.pfm.service;
 
 import JK.pfm.dto.UserSettingsDto;
 import JK.pfm.model.User;
