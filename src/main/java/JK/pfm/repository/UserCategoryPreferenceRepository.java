@@ -13,6 +13,7 @@ import org.springframework.data.repository.query.Param;
 
 
 public interface UserCategoryPreferenceRepository extends JpaRepository<UserCategoryPreference, Long> {
+    
     List<UserCategoryPreference> findByUserId(Long userId);
     
     boolean existsByUserIdAndCategoryId(Long userId, Long categoryId);
