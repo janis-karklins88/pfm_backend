@@ -16,7 +16,19 @@ public interface TransactionRepository
 
     List<Transaction> findByCategoryId(Long categoryId);
 
-    List<Transaction> findTop5ByAccountIdInOrderByIdDesc(List<Long> accountIds);
+    @Query(
+    value = """
+      SELECT *
+        FROM transactions
+       WHERE account_id IN (:accountIds)
+       ORDER BY date DESC, id DESC
+       LIMIT 5
+    """,
+    nativeQuery = true
+  )
+    List<Transaction> findTop5ByAccountIdInOrderByIdDesc(
+            @Param("accountIds") List<Long> accountIds
+    );
 
     // total expense and income, ignoring Savings, Opening Balance, Fund Transfer
     @Query("""
