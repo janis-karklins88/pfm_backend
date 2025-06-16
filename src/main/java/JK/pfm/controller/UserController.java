@@ -1,4 +1,4 @@
-package jk.pfm.controller;
+package JK.pfm.controller;
 
 import JK.pfm.dto.ChangeUsernameDto;
 import JK.pfm.dto.UserDto;

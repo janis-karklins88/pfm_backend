@@ -11,6 +11,15 @@ public class UserLoginRequest {
     @NotBlank(message = "Password is required")
     private String password;
     
+    public UserLoginRequest(){
+
+    }
+    
+    public UserLoginRequest(String un, String pass){
+        this.password = pass;
+        this.username = un;
+    }
+    
     public String getUsername(){
         return username;
     }

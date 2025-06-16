@@ -153,7 +153,7 @@ public interface TransactionRepository
         ), 0)
       FROM Transaction t
       WHERE t.account.id IN :accountIds
-        AND LOWER(t.category.name) = 'savings'
+        AND LOWER(t.category.name) = 'fund transfer'
         AND t.date BETWEEN :start AND :end
     """)
     BigDecimal netSavingsMonthlyBalance(
@@ -174,7 +174,7 @@ public interface TransactionRepository
         ), 0)
       FROM Transaction t
       WHERE t.account.user.id   = :userId
-        AND t.category.name      = 'Savings'
+        AND t.category.name      = 'Fund Transfer'
         AND t.date              <= :cutoffDate
     """)
     BigDecimal getSavingsBalanceUpTo(

@@ -400,31 +400,32 @@ class TransactionRepositoryTest {
     }
     
     @Test
-void netSavingsMonthlyBalance_filtersAndSumsCorrectly() {
+    void netSavingsMonthlyBalance_filtersAndSumsCorrectly() {
     List<Long> accountIds = List.of(acc1.getId());
     LocalDate start = LocalDate.now().with(TemporalAdjusters.firstDayOfMonth());
     LocalDate end   = start.with(TemporalAdjusters.lastDayOfMonth());
 
     // make sure there's a “Savings” category
-    Category savingsCat = new Category("Savings");
-    em.persist(savingsCat);
+    Category cat = new Category("Fund Transfer");
+    em.persist(cat);
 
     // 2 valid savings transactions (one deposit, one withdrawal)
     var txn1 = new Transaction(
         start, 
         new BigDecimal("100"), 
         acc1, 
-        savingsCat, 
-        "Withdraw", 
+        cat, 
+        "Expense", 
         "Deposit to savings"
     );
+
     var txn2 = new Transaction(
         start.plusDays(5), 
         new BigDecimal("30"), 
         acc1, 
-        savingsCat, 
-        "Withdraw from savings", 
-        "txn2–withdraw"
+        cat, 
+        "Deposit", 
+        "Withdraw from savings"
     );
 
     // excluded: before date range
@@ -432,9 +433,9 @@ void netSavingsMonthlyBalance_filtersAndSumsCorrectly() {
         start.minusDays(1), 
         new BigDecimal("10"), 
         acc1, 
-        savingsCat, 
-        "Deposit to savings", 
-        "txn3–too early"
+        cat, 
+        "Expense", 
+        "Deposit to savings"
     );
 
     // excluded: after date range
@@ -442,9 +443,9 @@ void netSavingsMonthlyBalance_filtersAndSumsCorrectly() {
         end.plusDays(1), 
         new BigDecimal("10"), 
         acc1, 
-        savingsCat, 
-        "Withdraw from savings", 
-        "txn4–too late"
+        cat, 
+        "Deposit", 
+        "Withdraw from savings"
     );
 
     // excluded: wrong account
@@ -452,9 +453,9 @@ void netSavingsMonthlyBalance_filtersAndSumsCorrectly() {
         start.plusDays(2), 
         new BigDecimal("20"), 
         acc2, 
-        savingsCat, 
-        "Deposit to savings", 
-        "txn5–wrong account"
+        cat, 
+        "Expense", 
+        "Deposit to savings"
     );
 
     // excluded: non‐savings category
@@ -466,8 +467,8 @@ void netSavingsMonthlyBalance_filtersAndSumsCorrectly() {
         new BigDecimal("20"),
         acc1,
         otherCat,
-        "Deposit to savings",
-        "txn6–wrong category"
+        "Expense",
+        "Deposit to savings"
     );
 
     em.persist(txn1);
@@ -483,7 +484,81 @@ void netSavingsMonthlyBalance_filtersAndSumsCorrectly() {
     // expected: 100 (deposit) – 30 (withdraw) = 70
     assertEquals(new BigDecimal("70.00"), sum);
 }
+    
+    @Test
+    void netSavingsBalanceUpToCutoffDate() {
+    LocalDate today = LocalDate.now();
 
+    Category cat = new Category("Fund Transfer");
+    em.persist(cat);
+
+    // 2 valid savings transactions (one deposit, one withdrawal)
+    var txn1 = new Transaction(
+        today.minusDays(5), 
+        new BigDecimal("100"), 
+        acc1, 
+        cat, 
+        "Expense", 
+        "Deposit to savings"
+    );
+
+    var txn2 = new Transaction(
+        today, 
+        new BigDecimal("30"), 
+        acc1, 
+        cat, 
+        "Deposit", 
+        "Withdraw from savings"
+    );
+
+    // excluded: after cutoff
+    var txn3 = new Transaction(
+        today.plusDays(1), 
+        new BigDecimal("10"), 
+        acc1, 
+        cat, 
+        "Expense", 
+        "Deposit to savings"
+    );
+
+
+    // excluded: wrong account
+    Account acc3 = new Account ("acc3", new BigDecimal("100"), other);
+        em.persist(acc3);
+    var txn5 = new Transaction(
+        today, 
+        new BigDecimal("20"), 
+        acc3, 
+        cat, 
+        "Expense", 
+        "Deposit to savings"
+    );
+
+    // excluded: non‐savings category
+    Category otherCat = new Category("Other");
+    otherCat.setIsDefault(false);
+    em.persist(otherCat);
+    var txn6 = new Transaction(
+        today,
+        new BigDecimal("20"),
+        acc1,
+        otherCat,
+        "Expense",
+        "Deposit to savings"
+    );
+
+    em.persist(txn1);
+    em.persist(txn2);
+    em.persist(txn3);
+    em.persist(txn5);
+    em.persist(txn6);
+    em.flush();
+    em.clear();
+
+    BigDecimal sum = repo.getSavingsBalanceUpTo(user.getId(), today);
+    // expected: 100 (deposit) – 30 (withdraw) = 70
+    assertEquals(new BigDecimal("70.00"), sum);
+    }
     
     
     
