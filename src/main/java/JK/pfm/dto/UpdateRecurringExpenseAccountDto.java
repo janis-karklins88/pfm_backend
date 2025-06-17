@@ -1,12 +1,16 @@
 
 package JK.pfm.dto;
 
-import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 
 public class UpdateRecurringExpenseAccountDto {
     
-    @NotBlank (message = "Account ir required")
+    @NotNull (message = "Account ir required")
     private Long accountId;
+    
+    public UpdateRecurringExpenseAccountDto(){
+
+    }
     
     public UpdateRecurringExpenseAccountDto(Long id){
         this.accountId = id;

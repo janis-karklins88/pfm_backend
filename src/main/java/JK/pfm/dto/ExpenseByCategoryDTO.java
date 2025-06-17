@@ -7,6 +7,10 @@ import java.math.BigDecimal;
 public class ExpenseByCategoryDTO {
     private String categoryName;
     private BigDecimal totalAmount;
+    
+    public ExpenseByCategoryDTO() {
+
+    }
 
     public ExpenseByCategoryDTO(String categoryName, BigDecimal totalAmount) {
         this.categoryName = categoryName;

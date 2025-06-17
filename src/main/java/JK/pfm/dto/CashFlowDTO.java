@@ -9,6 +9,10 @@ public class CashFlowDTO {
     private BigDecimal inflow;
     private BigDecimal outflow;
     private BigDecimal netFlow;
+    
+    public CashFlowDTO() {
+
+    }
 
     public CashFlowDTO(String month, BigDecimal inflow, BigDecimal outflow, BigDecimal netFlow) {
         this.month = month;

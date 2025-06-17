@@ -20,7 +20,7 @@ public class BudgetCreationRequest {
     @PositiveOrZero(message = "Amount cant be negative")
     private BigDecimal amount;
     
-    @NotBlank(message = "Category missing")
+    @NotNull(message = "Category missing")
     private Long categoryId;
 
     

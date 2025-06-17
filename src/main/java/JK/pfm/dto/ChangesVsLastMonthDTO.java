@@ -8,6 +8,9 @@ public class ChangesVsLastMonthDTO {
     private String name;
     private BigDecimal percentage;
     
+    public ChangesVsLastMonthDTO() {
+        }
+    
     public ChangesVsLastMonthDTO(String name, BigDecimal percentageChange) {
             this.name = name;
             this.percentage = percentageChange;

@@ -35,12 +35,13 @@ public class RecurringExpenseCreation {
     
     public RecurringExpenseCreation (){}
     
-    public RecurringExpenseCreation(LocalDate start, BigDecimal a, Long catId, String accName, String freq){
+    public RecurringExpenseCreation(String name, LocalDate start, BigDecimal a, Long catId, String accName, String freq){
         this.startDate = start;
         this.amount = a;
         this.categoryId = catId;
         this.accountName = accName;
         this.frequency = freq;
+        this.name = name;
     }
 
     

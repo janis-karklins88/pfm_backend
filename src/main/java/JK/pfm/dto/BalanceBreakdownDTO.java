@@ -8,6 +8,10 @@ public class BalanceBreakdownDTO {
     private String name;
     private BigDecimal amount;
     
+    public BalanceBreakdownDTO(){
+
+    }
+    
     public BalanceBreakdownDTO(String name, BigDecimal amount){
         this.name = name;
         this.amount = amount;
