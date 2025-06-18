@@ -40,17 +40,16 @@ class ReportControllerTest {
 
     @Autowired
     private MockMvc mockMvc;
-
     @Autowired
     private ObjectMapper objectMapper;
+    
 
     // mock your service
     @MockitoBean ReportService reportService;
 
-    // mock SecurityUtil for @PreAuthorize
+    // mock @PreAuthorize
     @MockitoBean
     private SecurityUtil securityUtil;
-    
     @MockitoBean
     private JWTUtil jwtUtil;
     @MockitoBean 

@@ -17,6 +17,15 @@ public class SavingGoalCreation {
     
     private String description;
     
+    public SavingGoalCreation(){
+        
+    }
+    
+    public SavingGoalCreation(BigDecimal target, String name, String desc){
+        this.targetAmount = target;
+        this.name = name;
+        this.description = desc;
+    }
 
     
     // getters and setters
