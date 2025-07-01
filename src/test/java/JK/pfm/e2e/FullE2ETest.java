@@ -3,13 +3,22 @@ package JK.pfm.e2e;
 
 
 import JK.pfm.dto.AccountCreationRequest;
+import JK.pfm.dto.BudgetCreationRequest;
+import JK.pfm.dto.CashFlowDTO;
+import JK.pfm.dto.ExpenseByCategoryDTO;
+import JK.pfm.dto.RecurringExpenseCreation;
+import JK.pfm.dto.SavingGoalCreation;
 import JK.pfm.dto.TransactionCreationRequest;
 import JK.pfm.dto.UserLoginRequest;
 import JK.pfm.dto.UserRegistrationDto;
 import JK.pfm.dto.UserSettingsDto;
 import JK.pfm.model.Account;
+import JK.pfm.model.Budget;
 import JK.pfm.model.Category;
+import JK.pfm.model.RecurringExpense;
+import JK.pfm.model.SavingsGoal;
 import JK.pfm.model.Transaction;
+import JK.pfm.repository.AccountRepository;
 import JK.pfm.repository.CategoryRepository;
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -43,6 +52,8 @@ public class FullE2ETest {
     private TestRestTemplate restTemplate;
     @Autowired
     private CategoryRepository categoryRepository;
+    @Autowired
+    private AccountRepository repo;
 
     private String baseUrl;
     private String jwtToken;
@@ -152,9 +163,117 @@ public class FullE2ETest {
       () -> assertEquals(HttpStatus.CREATED, r2.getStatusCode())
     );
     }
+    
+    @Test
+    @Order(5)
+    void testAddBudget() {
+        Category expenseCategory = categoryRepository.findByName("Some expense").orElseThrow();
+        var req = new BudgetCreationRequest(
+                new BigDecimal("100"), 
+                LocalDate.now().minusDays(5), 
+                LocalDate.now().plusDays(5), 
+                expenseCategory.getId()
+                        );
+        
+        ResponseEntity<Budget> resp = restTemplate.postForEntity(
+        baseUrl + "/api/budgets",
+        withAuth(req),
+        Budget.class
+                );
+                
+        assertEquals(HttpStatus.CREATED, resp.getStatusCode(),
+        "Budget creation should return 201 CREATED");   
+        
+        assertNotNull(resp.getBody().getId(),
+        "Created Budget must have an ID");
+    
+    }
+    
+    @Test
+    @Order(6)
+    void testAddAutoPayment(){
+        Category expenseCategory = categoryRepository.findByName("Some expense").orElseThrow();
+        var req = new RecurringExpenseCreation("GYM", 
+                LocalDate.now(), 
+                new BigDecimal("30"), 
+                expenseCategory.getId(), 
+                "E2E Checking", 
+                "MONTHLY"
+                        );
+        
+        ResponseEntity<RecurringExpense> resp = restTemplate.postForEntity(
+        baseUrl + "/api/recurring-expenses",
+        withAuth(req),
+        RecurringExpense.class
+                );
+                
+        assertEquals(HttpStatus.CREATED, resp.getStatusCode(),
+        "recurring-expense creation should return 201 CREATED");   
+        
+        assertNotNull(resp.getBody().getId(),
+        "Created recurring-expense must have an ID");
+    }
+    
+    @Test
+    @Order(7)
+    void testAddSavingsGoal(){
+        var req = new SavingGoalCreation(
+                new BigDecimal("200"),
+                "iPhone",
+                "new phone"
+                        );
+        
+        ResponseEntity<SavingsGoal> resp = restTemplate.postForEntity(
+        baseUrl + "/api/savings-goals",
+        withAuth(req),
+        SavingsGoal.class
+                );
+                
+        assertEquals(HttpStatus.CREATED, resp.getStatusCode(),
+        "SavingsGoal creation should return 201 CREATED");   
+        
+        assertNotNull(resp.getBody().getId(),
+        "Created SavingsGoal must have an ID");
+    }
+    
+    @Test
+    @Order(8)
+    void testReportsCategorySpending(){
+        
+        String url = String.format(
+        "%s/api/reports/spending-by-category?start=%s&end=%s",
+        baseUrl,
+        LocalDate.now().minusDays(3),
+        LocalDate.now().plusDays(3)
+        );
+        
+    ResponseEntity<ExpenseByCategoryDTO[]> resp = restTemplate
+    .exchange(url, HttpMethod.GET, withAuth(null), ExpenseByCategoryDTO[].class);
 
+    assertEquals(HttpStatus.OK, resp.getStatusCode());
+    ExpenseByCategoryDTO[] flows = resp.getBody();
+    assertNotNull(flows, "Response body must not be null");
+    }
+    
     @Test
     @Order(9)
+    void testReportsMoneyNetFlow(){
+        ResponseEntity<CashFlowDTO[]> resp = restTemplate.exchange(
+        baseUrl + "/api/reports/monthly-cashflow",
+        HttpMethod.GET,
+        withAuth(null),
+        CashFlowDTO[].class
+        );
+        
+        assertEquals(HttpStatus.OK, resp.getStatusCode(),
+      "GET /api/reports/monthly-cashflow should return 200 OK");
+        CashFlowDTO[] flows = resp.getBody();
+        assertNotNull(flows, "Response body must not be null");
+        
+    }
+
+    @Test
+    @Order(10)
     void testChangeCurrency() {
     Map<String,String> body = Map.of("currency", "USD");
     
@@ -192,9 +311,115 @@ public class FullE2ETest {
     
     }
 
+    @Test
+    @Order(11)
+    void testCreateAccountValidationFailure() {
+    // Missing ‘name’ or negative balance
+    var invalidReq = new AccountCreationRequest("", new BigDecimal("-10"));
+    ResponseEntity<String> resp = restTemplate.postForEntity(
+      baseUrl + "/api/accounts", withAuth(invalidReq), String.class);
+
+    assertEquals(HttpStatus.BAD_REQUEST, resp.getStatusCode(),
+      "Invalid account DTO should be rejected with 400 Bad Request");
+        }
+    
+    @Test
+    @Order(12)
+    void testAnonymousCannotCreateAccount() {
+    // No Authorization header
+    var req = new AccountCreationRequest("Hacker Account", BigDecimal.ZERO);
+    ResponseEntity<String> resp = restTemplate
+      .postForEntity(baseUrl + "/api/accounts", req, String.class);
+
+    assertEquals(HttpStatus.FORBIDDEN, resp.getStatusCode(),
+        "Calling a secured endpoint without JWT should return forbidden");
+    }
+    
+    @Test
+    @Order(13)
+    void testInvalidJwtIsRejected() {
+    HttpHeaders headers = new HttpHeaders();
+    headers.setBearerAuth("Bearer this.is.not.a.valid.token");
+    HttpEntity<Void> entity = new HttpEntity<>(headers);
+
+    ResponseEntity<String> resp = restTemplate.exchange(
+      baseUrl + "/api/accounts",
+      HttpMethod.GET,
+      entity,
+      String.class
+    );
+
+    assertEquals(HttpStatus.FORBIDDEN, resp.getStatusCode(),
+        "Invalid JWT should be rejected with forbidden");
+    }
+
+    @Test
+    @Order(14)
+    void testRegisterDuplicateUsername() {
+    // First registration succeeds
+    var req1 = new UserRegistrationDto("dupuser", "pass12345");
+    assertEquals(HttpStatus.CREATED,
+      restTemplate.postForEntity(baseUrl + "/api/users/register", req1, Void.class).getStatusCode());
+
+    // Second registration must fail
+    var req2 = new UserRegistrationDto("dupuser", "pass456789");
+    ResponseEntity<String> resp = restTemplate.postForEntity(
+      baseUrl + "/api/users/register", req2, String.class);
+
+    assertEquals(HttpStatus.CONFLICT, resp.getStatusCode(),
+      "Registering the same username twice should return 409 Conflict");
+    }
+
+    @Test
+    @Order(15)
+    void testLoginWithBadCredentials() {
+    var badLogin = new UserLoginRequest(USERNAME, "WrongPass!");
+    ResponseEntity<String> resp = restTemplate.postForEntity(
+      baseUrl + "/api/users/login", badLogin, String.class);
+
+    assertEquals(HttpStatus.UNAUTHORIZED, resp.getStatusCode(),
+      "Logging in with incorrect password should return 401 Unauthorized");
+    }
+    
+    @Test
+    @Order(16)
+    void testUnauthorizedUserCannotDeleteAccount() {
+    // ── Arrange: register a totally new user ────────────────────────────────
+    String otherUsername = "otherUser";
+    String otherPassword = "OtherP@ss1";
+    var regReq = new UserRegistrationDto(otherUsername, otherPassword);
+    // we expect 201 CREATED
+    ResponseEntity<Void> regResp = restTemplate
+        .postForEntity(baseUrl + "/api/users/register", regReq, Void.class);
+    assertEquals(HttpStatus.CREATED, regResp.getStatusCode(),
+      "Second user should register successfully");
+
+    // ── Act: login as that new user ─────────────────────────────────────────
+    var loginReq = new UserLoginRequest(otherUsername, otherPassword);
+    ResponseEntity<String> loginResp = restTemplate
+        .postForEntity(baseUrl + "/api/users/login", loginReq, String.class);
+    assertEquals(HttpStatus.OK, loginResp.getStatusCode(),
+      "Login for second user should return 200 OK");
+    String rawBody = loginResp.getBody();
+    assertNotNull(rawBody);
+    assertTrue(rawBody.startsWith("Bearer "));
+    String otherJwt = rawBody.substring("Bearer ".length());
+
+    // ── Act: attempt to delete the first user’s account ──────────────────────
+    HttpHeaders headers = new HttpHeaders();
+    headers.setBearerAuth(otherJwt);
+    HttpEntity<Void> deleteReq = new HttpEntity<>(headers);
 
 
+    // assumes your DELETE account endpoint is DELETE /api/accounts/{id}
+    String deleteUrl = baseUrl + "/api/accounts/" + accountId;
+    ResponseEntity<Void> deleteResp = restTemplate.exchange(
+        deleteUrl, HttpMethod.DELETE, deleteReq, Void.class);
 
+    // ── Assert: forbidden because this account doesn’t belong to otherUser ────
+    assertEquals(HttpStatus.NOT_FOUND, deleteResp.getStatusCode(),
+    "Deleting another user’s account should return 404 Not Found");
+    }
 
 
 }
