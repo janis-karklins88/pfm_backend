@@ -14,13 +14,30 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 public interface SavingsGoalRepository extends JpaRepository<SavingsGoal, Long>, JpaSpecificationExecutor<SavingsGoal> {
-    // You can add custom query methods if needed.
+
+    	/**
+	 * Calculates the total savings balance for a specific user.
+	 *
+	 * <p>Sums all {@code currentAmount} values across the user's {@link SavingsGoal} records.
+	 * If the user has no savings goals, returns {@code 0}.</p>
+	 *
+	 * @param userId the ID of the user
+	 * @return total current balance as a {@link BigDecimal}
+	 */
     @Query("SELECT COALESCE(SUM(a.currentAmount), 0) FROM SavingsGoal a WHERE a.user.id = :userId")
     BigDecimal getTotalBalanceByUserId(@Param("userId") Long userId);
     
     
     
-    //get last months savings balance
+	/**
+	 * Retrieves the last recorded total savings balance for a specific user.
+	 *
+	 * <p>Returns the most recent {@code lastMonthAmount} value among the user's savings goals.
+	 * If no record exists, returns {@code 0}.</p>
+	 *
+	 * @param userId the ID of the user
+	 * @return last month's recorded savings balance as a {@link BigDecimal}
+	 */
     @Query("""
     SELECT COALESCE(MAX(g.lastMonthAmount), 0)
     FROM SavingsGoal g
@@ -29,17 +46,27 @@ public interface SavingsGoalRepository extends JpaRepository<SavingsGoal, Long>,
     BigDecimal getLastMonthBalanceByUserId(@Param("userId") Long userId);
 
     
-    /**
-     * Find every user ID that has at least one SavingsGoal.
-     * Used by the scheduler to know which users to snapshot.
-     */
+	/**
+	 * Retrieves all unique user IDs that currently have at least one savings goal.
+	 *
+	 * <p>Used by background schedulers to determine which users should be included
+	 * in monthly snapshot operations.</p>
+	 *
+	 * @return list of distinct user IDs owning at least one {@link SavingsGoal}
+	 */
     @Query("SELECT DISTINCT g.user.id FROM SavingsGoal g")
     List<Long> findDistinctUserIds();
     
-    /**
-     * Bulk‐update the lastMonthAmount for all SavingsGoal rows of a given user.
-     * Returns the number of rows updated.
-     */
+	/**
+	 * Updates the {@code lastMonthAmount} field for all savings goals belonging to a given user.
+	 *
+	 * <p>Used during scheduled month-end processing to record the user's last known balance.
+	 * Returns the total number of rows updated.</p>
+	 *
+	 * @param userId the ID of the user whose savings goals should be updated
+	 * @param amount the amount to set as {@code lastMonthAmount}
+	 * @return number of updated records
+	 */
     @Modifying
     @Transactional
     @Query("""

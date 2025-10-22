@@ -26,7 +26,8 @@ import org.springframework.core.annotation.Order;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
-@Component
+//Disabled for now
+//@Component
 @Profile("perf")
 @Order(Ordered.LOWEST_PRECEDENCE)
 public class PerfDataLoader implements CommandLineRunner {

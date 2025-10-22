@@ -13,9 +13,23 @@ import org.springframework.data.repository.query.Param;
 
 public interface TransactionRepository
     extends JpaRepository<Transaction, Long>, JpaSpecificationExecutor<Transaction> {
-
+    
+	/**
+	 * Finds all transactions by category ID.
+	 *
+	 * @param categoryId the category identifier
+	 * @return list of {@link Transaction} entries for the given category
+	 */
     List<Transaction> findByCategoryId(Long categoryId);
 
+	/**
+	 * Retrieves the five most recent transactions for the specified accounts.
+	 *
+	 * <p>Orders by {@code date DESC, id DESC} to ensure stable ordering when dates are equal.</p>
+	 *
+	 * @param accountIds list of account IDs to include
+	 * @return up to five most recent {@link Transaction} rows
+	 */    
     @Query(
     value = """
       SELECT *
@@ -30,7 +44,19 @@ public interface TransactionRepository
             @Param("accountIds") List<Long> accountIds
     );
 
-    // total expense and income, ignoring Savings, Opening Balance, Fund Transfer
+	/**
+	 * Sums transaction amounts for a given type and period, limited to the provided accounts.
+	 *
+	 * <p>Excludes system categories (Savings, Opening Balance, Fund Transfer) and internal
+	 * savings transfer descriptions ({@code "Deposit to savings"}, {@code "Withdraw from savings"}).
+	 * Returns {@code 0} when no rows match.</p>
+	 *
+	 * @param type the transaction type (e.g., {@code "Expense"} or {@code "Deposit"})
+	 * @param accountIds list of account IDs to include
+	 * @param start inclusive start date
+	 * @param end inclusive end date
+	 * @return sum as {@link BigDecimal}, or {@code 0} if none
+	 */
     @Query("""
       SELECT COALESCE(SUM(t.amount), 0)
       FROM Transaction t
@@ -51,7 +77,19 @@ public interface TransactionRepository
         @Param("end")        LocalDate end
     );
 
-    // total category expense for a specific user category, still ignoring system cats
+	/**
+	 * Sums transaction amounts for a given type/category and period, limited to the provided accounts.
+	 *
+	 * <p>Excludes system categories and internal savings transfer descriptions.
+	 * Returns {@code 0} when no rows match.</p>
+	 *
+	 * @param type the transaction type (e.g., {@code "Expense"} or {@code "Deposit"})
+	 * @param accountIds list of account IDs to include
+	 * @param start inclusive start date
+	 * @param end inclusive end date
+	 * @param categoryId the target category ID
+	 * @return sum as {@link BigDecimal}, or {@code 0} if none
+	 */
     @Query("""
       SELECT COALESCE(SUM(t.amount), 0)
       FROM Transaction t
@@ -74,7 +112,16 @@ public interface TransactionRepository
         @Param("categoryId") Long categoryId
     );
 
-    // expense-by-category breakdown, excluding system categories
+	/**
+	 * Aggregates expense totals by category for the specified period and accounts.
+	 *
+	 * <p>Excludes system categories. Returns category name with its total expense.</p>
+	 *
+	 * @param accountIds list of account IDs to include
+	 * @param start inclusive start date
+	 * @param end inclusive end date
+	 * @return list of {@link ExpenseByCategoryDTO} rows
+	 */
     @Query("""
       SELECT new JK.pfm.dto.ExpenseByCategoryDTO(
         t.category.name,
@@ -95,10 +142,16 @@ public interface TransactionRepository
         @Param("end")        LocalDate end
     );
     
-     /**
-     * Net “Expense” per account over the given period,
-     * excluding system categories (Savings, Opening Balance, Fund Transfer).
-     */
+	/**
+	 * Aggregates expense totals by account for the specified period and accounts.
+	 *
+	 * <p>Excludes system categories. Returns account name with its total expense.</p>
+	 *
+	 * @param accountIds list of account IDs to include
+	 * @param start inclusive start date
+	 * @param end inclusive end date
+	 * @return list of {@link ExpenseByAccountDTO} rows
+	 */
     @Query("""
       SELECT new JK.pfm.dto.ExpenseByAccountDTO(
         t.account.name,
@@ -120,7 +173,16 @@ public interface TransactionRepository
     );
 
 
-    // daily trends (no change needed here)
+	/**
+	 * Returns daily totals grouped by date and type for the specified period.
+	 *
+	 * <p>Each element is an {@code Object[]} with the following layout:
+	 * {@code [LocalDate date, String type, BigDecimal sum]}. Results are ordered by date ascending.</p>
+	 *
+	 * @param start inclusive start date
+	 * @param end inclusive end date
+	 * @return list of rows as {@code Object[]} triples (date, type, sum)
+	 */
     @Query("""
       SELECT t.date, t.type, COALESCE(SUM(t.amount), 0)
       FROM Transaction t
@@ -132,16 +194,41 @@ public interface TransactionRepository
         @Param("start") LocalDate start,
         @Param("end")   LocalDate end
     );
-
+    
+	/**
+	 * Retrieves all transactions whose date falls within the given inclusive range.
+	 *
+	 * @param startDate inclusive start date
+	 * @param endDate inclusive end date
+	 * @return list of {@link Transaction} entries
+	 */
     List<Transaction> findByDateBetween(LocalDate startDate, LocalDate endDate);
-
+    
+	/**
+	 * Checks whether any transaction exists for the specified accounts in the given date range.
+	 *
+	 * @param accountIds list of account IDs to check
+	 * @param start inclusive start date
+	 * @param end inclusive end date
+	 * @return {@code true} if at least one transaction exists, otherwise {@code false}
+	 */
     boolean existsByAccountIdInAndDateBetween(
         List<Long> accountIds,
         LocalDate start,
         LocalDate end
     );
 
-    // net savings balance (unchanged)
+	/**
+	 * Computes the net savings movement for the specified period and accounts.
+	 *
+	 * <p>Only considers transactions in the {@code 'Fund Transfer'} category, and
+	 * interprets {@code 'Deposit to savings'} as +amount and {@code 'Withdraw from savings'} as -amount.</p>
+	 *
+	 * @param accountIds list of account IDs to include
+	 * @param start inclusive start date
+	 * @param end inclusive end date
+	 * @return net savings movement as {@link BigDecimal} (can be negative)
+	 */
     @Query("""
       SELECT COALESCE(
         SUM(
@@ -162,7 +249,16 @@ public interface TransactionRepository
         @Param("end")        LocalDate end
     );
 
-    // get cumulative savings up to cutoff (unchanged)
+	/**
+	 * Returns cumulative savings balance up to a cut-off date for a user.
+	 *
+	 * <p>Only considers {@code 'Fund Transfer'} category rows and interprets savings
+	 * deposits/withdrawals via transaction description, producing a net historical total.</p>
+	 *
+	 * @param userId the user's ID
+	 * @param cutoffDate inclusive cut-off date
+	 * @return cumulative savings balance as of {@code cutoffDate}
+	 */
     @Query("""
       SELECT COALESCE(
         SUM(
@@ -182,7 +278,16 @@ public interface TransactionRepository
         @Param("cutoffDate") LocalDate cutoffDate
     );
 
-    // cumulative account balance, ignoring system categories
+	/**
+	 * Computes cumulative account balance up to a cut-off date, excluding system categories.
+	 *
+	 * <p>Interprets {@code Deposit} as +amount and {@code Expense} as -amount.
+	 * Excludes Savings, Opening Balance, and Fund Transfer categories.</p>
+	 *
+	 * @param userId the user's ID
+	 * @param cutoffDate inclusive cut-off date
+	 * @return cumulative balance as of {@code cutoffDate}
+	 */
     @Query("""
       SELECT COALESCE(
         SUM(

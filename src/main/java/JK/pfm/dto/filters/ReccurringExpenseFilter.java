@@ -4,9 +4,15 @@
  */
 package JK.pfm.dto.filters;
 
-
+/**
+ * Filter used for retrieving recurring expenses based on date range, category, account.
+ * <p>
+ * Extends {@link DateRangeFilter} to include optional transaction-specific filters.
+ */
 public class ReccurringExpenseFilter extends DateRangeFilter {
+    /** Category ID to filter by (optional). */
     private Long categoryId;
+    /** Account ID to filter by (optional). */
     private Long accountId;
     
     public ReccurringExpenseFilter() {
