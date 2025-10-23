@@ -32,7 +32,11 @@ public class CategoryService {
         this.userCategoryPreferenceRepository = userCategoryPreferenceRepository;
     }
 
-    //getting all active categories for user
+    /**
+     * Retrieves all active categories for the currently authenticated user.
+     *
+     * @return a list of active {@link JK.pfm.model.Category} entities
+     */
     public List<Category> getAllCategoriesForUser() {
         List<UserCategoryPreference> preferences = userCategoryPreferenceRepository.findByUserIdAndActiveTrue(SecurityUtil.getUserId());
         return preferences.stream()
@@ -41,12 +45,28 @@ public class CategoryService {
         
     }
     
-    //getting all categories for user
+    /**
+     * Retrieves all categories for the currently authenticated user,
+     * including their active status.
+     *
+     * @return a list of {@link JK.pfm.dto.CategoryListDto} containing category details and visibility flags
+     */
     public List<CategoryListDto> getAllCategories() {        
         return userCategoryPreferenceRepository.findCategoryListDtoByUserId(SecurityUtil.getUserId());
     }
 
-    //saving category
+    /**
+     * Creates a new custom category for the currently authenticated user.
+     * <p>
+     * Prevents creating system-reserved names such as "Savings",
+     * "Opening Account", and "Fund Transfer". Links the new category
+     * to the user via a {@link JK.pfm.model.UserCategoryPreference}.
+     *
+     * @param name the name of the new category
+     * @return the created {@link JK.pfm.model.Category}
+     * @throws org.springframework.web.server.ResponseStatusException
+     *         if the name is reserved or already exists for the user (409 CONFLICT)
+     */
     @Transactional
     public Category saveCategory(String name) {
         if(name.equals("Savings") || name.equals("Opening Account") || name.equals("Fund Transfer")){
@@ -75,7 +95,14 @@ public class CategoryService {
     }
 
 
-    //set active/inactive
+    /**
+     * Updates the visibility (active status) of a user's category.
+     *
+     * @param categoryId the ID of the category to update
+     * @param active {@code true} to activate, {@code false} to deactivate
+     * @throws org.springframework.web.server.ResponseStatusException
+     *         if the category preference is not found (404 NOT FOUND)
+     */
     @Transactional
     public void updateCategoryVisibility(Long categoryId, boolean active) {
         UserCategoryPreference pref = 

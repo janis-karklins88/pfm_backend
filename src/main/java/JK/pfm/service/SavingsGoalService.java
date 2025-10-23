@@ -31,7 +31,6 @@ import org.springframework.web.server.ResponseStatusException;
 
 @Service
 public class SavingsGoalService {
-
     private final SavingsGoalRepository savingsGoalRepository;
     private final TransactionRepository transactionRepository;
     private final CategoryRepository categoryRepository;
@@ -58,20 +57,42 @@ public class SavingsGoalService {
         this.accountRepository     = accountRepository;
     }
 
-    //getting all saving goals
+    /**
+	 * Retrieves all savings goals for the specified user.
+	 * <p>
+	 * Applies a specification to ensure ownership by the given {@code userId}.
+	 *
+	 * @param userId the user ID whose savings goals to fetch
+	 * @return a list of {@link JK.pfm.model.SavingsGoal} for the user
+	 */
     public List<SavingsGoal> getAllSavingsGoals(Long userId) {
         Specification<SavingsGoal> spec = Specification.where(SavingsGoalSpecification.belongsToUser(userId));
         return savingsGoalRepository.findAll(spec);
     }
     
-    //getting total balance
+    /**
+	 * Returns the total balance across all savings goals for the current user.
+	 * <p>
+	 * If no balance is recorded, returns {@code BigDecimal.ZERO}.
+	 *
+	 * @return the aggregated savings balance
+	 */
     public BigDecimal getTotalBalance(){
         Long userId = SecurityUtil.getUserId();
         BigDecimal balance = savingsGoalRepository.getTotalBalanceByUserId(userId);
         return balance != null ? balance : BigDecimal.ZERO;
     }
 
-    //saving saving goals
+    /**
+	 * Creates a new savings goal for the current user.
+	 * <p>
+	 * Prevents duplicates by name (case-insensitive) per user.
+	 *
+	 * @param request the creation payload (name, target amount, description)
+	 * @return the persisted {@link JK.pfm.model.SavingsGoal}
+	 * @throws org.springframework.web.server.ResponseStatusException
+	 *         if a savings goal with the same name already exists (409 CONFLICT)
+	 */
     public SavingsGoal saveSavingsGoal(SavingGoalCreation request) {
         User user = SecurityUtil.getUser(userRepository);
         
@@ -93,13 +114,26 @@ public class SavingsGoalService {
         return savingsGoalRepository.save(goal);
     }
 
-    //getting saving goal
+    /**
+	 * Retrieves a savings goal by its identifier.
+	 *
+	 * @param id the savings goal ID
+	 * @return an {@link java.util.Optional} containing the {@link JK.pfm.model.SavingsGoal} if found
+	 */
     public Optional<SavingsGoal> getSavingsGoalById(Long id) {
         return savingsGoalRepository.findById(id);
     }
     
 
-    //deleting saving goal
+    /**
+	 * Deletes a savings goal.
+	 * <p>
+	 * Deletion is only allowed when the goal's current amount is zero.
+	 *
+	 * @param id the savings goal ID
+	 * @throws org.springframework.web.server.ResponseStatusException
+	 *         if the goal is not found (404 NOT FOUND) or if funds remain (409 CONFLICT)
+	 */
     @PreAuthorize("@securityUtil.isCurrentUserSavingsGoal(#id)")
     @Transactional
     public void deleteSavingsGoal(Long id) {
@@ -120,7 +154,15 @@ public class SavingsGoalService {
     savingsGoalRepository.deleteById(id);
     }
     
-    //update goal amount
+    /**
+	 * Updates the target amount of a savings goal.
+	 *
+	 * @param id the savings goal ID
+	 * @param amount the payload containing the new target amount
+	 * @return the updated {@link JK.pfm.model.SavingsGoal}
+	 * @throws org.springframework.web.server.ResponseStatusException
+	 *         if the goal is not found (404 NOT FOUND)
+	 */
     @PreAuthorize("@securityUtil.isCurrentUserSavingsGoal(#id)")
     public SavingsGoal updateSavingsGoalAmount(Long id, UpdateSavingsAmountDto amount) {
         
@@ -134,7 +176,24 @@ public class SavingsGoalService {
         return savingsGoalRepository.save(savingsGoal);
     }
     
-    //transfer funds
+    /**
+	 * Transfers funds between a savings goal and an account.
+	 * <p>
+	 * For {@code Withdraw}: moves funds from the savings goal to the account (creates an account
+	 * {@code Deposit} transaction). For {@code Deposit}: moves funds from the account to the
+	 * savings goal (creates an account {@code Expense} transaction). Uses the {@code "Fund Transfer"}
+	 * category for transactions.
+	 *
+	 * @param id the savings goal ID
+	 * @param request the transfer details (account name, amount, type: {@code Withdraw} or {@code Deposit})
+	 * @return the updated {@link JK.pfm.model.SavingsGoal}
+	 * @throws org.springframework.web.server.ResponseStatusException
+	 *         if the account is not found (404 NOT FOUND),
+	 *         if the savings goal is not found (404 NOT FOUND),
+	 *         if the transfer category is missing (404 NOT FOUND),
+	 *         if funds are insufficient in the source (409 CONFLICT), or
+	 *         if the transfer type is invalid (400 BAD REQUEST)
+	 */
     @PreAuthorize("@securityUtil.isCurrentUserSavingsGoal(#id)")
     @Transactional
     public SavingsGoal transferFunds(Long id, SavingsFundTransferDTO request){
@@ -199,7 +258,14 @@ public class SavingsGoalService {
         return savingsGoalRepository.save(savingsGoal);
     }
     
-    //get net savings monthly balance
+    /**
+	 * Computes the net monthly savings balance over the last 10 months.
+	 * <p>
+	 * Includes only months that have at least one transaction. Keys are 3-letter month labels
+	 * (e.g., {@code "Jan"}).
+	 *
+	 * @return a map of month label → net savings balance for that month
+	 */
     public Map<String, BigDecimal> getNetMonthlyBalance(){
         Map<String, BigDecimal> breakdown = new LinkedHashMap<>();
         List<Long> accountIds = accountUtil.getUserAccountIds();

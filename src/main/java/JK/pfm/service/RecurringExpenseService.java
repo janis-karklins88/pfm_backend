@@ -54,7 +54,14 @@ public class RecurringExpenseService {
         this.accountUtil = accountUtil;
     }
     
-        // Get all recurring expenses
+        /**
+	 * Retrieves recurring expenses for the current user using optional filters.
+	 * <p>
+	 * Applies ownership plus optional date, category, and account filters via specifications.
+	 *
+	 * @param filter optional filters for date range, category, and account
+	 * @return a list of matching {@link JK.pfm.model.RecurringExpense} (never {@code null})
+	 */
         public List<RecurringExpense> getRecurringExpensesByFilters (ReccurringExpenseFilter filter) {
         Specification<RecurringExpense> spec = Specification.where(
             RecurringExpenseSpecifications.belongsToUser(SecurityUtil.getUserId())
@@ -104,7 +111,14 @@ public class RecurringExpenseService {
         return expenses;
 }
     
-    // Save or update a recurring expense
+    /**
+     * Creates a new recurring expense for the current user.
+     *
+     * @param request the creation payload (name, amount, start date, frequency, account name, category id)
+     * @return the persisted {@link JK.pfm.model.RecurringExpense}
+     * @throws org.springframework.web.server.ResponseStatusException
+     *         if the referenced account (404 NOT FOUND) or category (404 NOT FOUND) does not exist
+     */
     @Transactional
     public RecurringExpense saveRecurringExpense(RecurringExpenseCreation request) {
         Long userId = SecurityUtil.getUserId();
@@ -135,7 +149,11 @@ public class RecurringExpenseService {
         return recurringExpenseRepository.save(expense);
     }
     
-    // Get a next 5 payments
+    /**
+     * Returns the next five upcoming recurring expenses across the user's active accounts.
+     *
+     * @return up to five upcoming {@link JK.pfm.model.RecurringExpense} ordered by next due date
+     */
     public List<RecurringExpense> getUpcommingRecurringExpense() {
         LocalDate todaysDate = LocalDate.now();
         List<Long> accountIds = accountUtil.getUserAccountIds();
@@ -145,7 +163,15 @@ public class RecurringExpenseService {
         return recurringExpenseRepository.findTop5ByAccountIdInAndNextDueDateAfterAndActiveTrueOrderByNextDueDateAsc(accountIds, todaysDate);
     }
     
-    //Update amount
+    /**
+     * Updates the amount of a recurring expense.
+     *
+     * @param id the recurring expense ID
+     * @param request the payload containing the new amount
+     * @return the updated {@link JK.pfm.model.RecurringExpense}
+     * @throws org.springframework.web.server.ResponseStatusException
+     *         if the payment is not found (404 NOT FOUND)
+     */
     @PreAuthorize("@securityUtil.isCurrentUserAutoPay(#id)")
     public RecurringExpense updateRecurringExpenseAmount(Long id, UpdatePaymentAmountDto request){
         
@@ -160,7 +186,15 @@ public class RecurringExpenseService {
         return recurringExpenseRepository.save(payment);
     }
     
-    //update date
+    /**
+     * Updates the next due date of a recurring expense.
+     *
+     * @param id the recurring expense ID
+     * @param date the payload containing the next due date
+     * @return the updated {@link JK.pfm.model.RecurringExpense}
+     * @throws org.springframework.web.server.ResponseStatusException
+     *         if the payment is not found (404 NOT FOUND)
+     */
     @PreAuthorize("@securityUtil.isCurrentUserAutoPay(#id)")
     public RecurringExpense updateRecurringExpenseNextDueDate(Long id, UpdatePaymentNextDueDateDto date){
 
@@ -175,7 +209,15 @@ public class RecurringExpenseService {
     }
     
     
-    //change account
+    /**
+     * Changes the funding account of a recurring expense.
+     *
+     * @param id the recurring expense ID
+     * @param request the payload containing the new account ID
+     * @return the updated {@link JK.pfm.model.RecurringExpense}
+     * @throws org.springframework.web.server.ResponseStatusException
+     *         if the account is invalid or inactive (404 NOT FOUND) or the payment is not found (404 NOT FOUND)
+     */
     @PreAuthorize("@securityUtil.isCurrentUserAutoPay(#id)")
     public RecurringExpense updateRecurringExpenseAccount(Long id, UpdateRecurringExpenseAccountDto request){
         Long userId = SecurityUtil.getUserId();
@@ -195,7 +237,14 @@ public class RecurringExpenseService {
         return recurringExpenseRepository.save(expense);
     }
     
-    //pause
+    /**
+    * Pauses a recurring expense (marks it inactive).
+     *
+     * @param id the recurring expense ID
+     * @return the updated {@link JK.pfm.model.RecurringExpense} with {@code active=false}
+     * @throws org.springframework.web.server.ResponseStatusException
+     *         if the payment is not found (404 NOT FOUND)
+     */
     @PreAuthorize("@securityUtil.isCurrentUserAutoPay(#id)")
     @Transactional
     public RecurringExpense pauseRecurringExpense(Long id) {
@@ -209,7 +258,16 @@ public class RecurringExpenseService {
         return recurringExpenseRepository.save(expense);
     }
 
-    //resume, inject java.time.Clock for unit testing
+    /**
+     * Resumes a recurring expense and recalculates the next due date based on last payment and frequency.
+     * <p>
+     * Advances the due date in steps (weekly/monthly/annually) until it falls after today, then activates the expense.
+     *
+     * @param id the recurring expense ID
+     * @return the updated {@link JK.pfm.model.RecurringExpense} with a recalculated next due date
+     * @throws org.springframework.web.server.ResponseStatusException
+     *         if the payment is not found (404 NOT FOUND) or the frequency is unsupported (400 BAD REQUEST)
+     */
     @PreAuthorize("@securityUtil.isCurrentUserAutoPay(#id)")
     @Transactional
     public RecurringExpense resumeRecurringExpense(Long id) {
@@ -241,7 +299,13 @@ public class RecurringExpenseService {
     }
 
     
-    // Delete a recurring expense by ID
+    /**
+     * Deletes a recurring expense by ID.
+     *
+     * @param id the recurring expense ID
+     * @throws org.springframework.web.server.ResponseStatusException
+     *         if the payment is not found (404 NOT FOUND)
+     */
     @PreAuthorize("@securityUtil.isCurrentUserAutoPay(#id)")
     public void deleteRecurringExpense(Long id) {
         RecurringExpense expense = recurringExpenseRepository.findById(id)
@@ -254,7 +318,14 @@ public class RecurringExpenseService {
 
     }
     
-    //get next due date from frequency
+    /**
+     * Calculates the next due date from the current due date and frequency.
+     *
+     * @param expense the recurring expense
+     * @return the computed next due date
+     * @throws org.springframework.web.server.ResponseStatusException
+     *         if the frequency is unsupported (400 BAD REQUEST)
+     */
     private LocalDate calculateNextDueDate(RecurringExpense expense){
         LocalDate currentDueDate = expense.getNextDueDate();
         String frequency = expense.getFrequency().toUpperCase();
@@ -270,8 +341,14 @@ public class RecurringExpenseService {
         }
     }
     
-    //processing recurring expenses
-    @Scheduled(cron = "0 0 * * * ?") // every day at midnight
+    /**
+     * Processes all due (or overdue) recurring expenses and advances their schedules.
+     * <p>
+     * For each active expense due today or earlier, creates an expense transaction, updates the account balance,
+     * sets {@code lastPayment} to today, and moves {@code nextDueDate} forward based on frequency.
+     * Scheduled by cron expression {@code 0 0 0 * * ?} .
+     */
+    @Scheduled(cron = "0 0 0 * * ?") // every day at midnight
     @Transactional
     public void processRecurringExpenses() {
         LocalDate today = LocalDate.now();

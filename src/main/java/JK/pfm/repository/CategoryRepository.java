@@ -13,7 +13,7 @@ public interface CategoryRepository extends JpaRepository<Category, Long> {
     	/**
 	 * Retrieves all default categories.
 	 *
-	 * <p>Default categories are typically system-defined and available to all users by default.</p>
+	 * <p>Default categories are system-defined and available to all users by default.</p>
 	 *
 	 * @return list of {@link Category} entities where {@code isDefault = true}
 	 */

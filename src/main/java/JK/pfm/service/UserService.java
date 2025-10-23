@@ -18,6 +18,12 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.server.ResponseStatusException;
 
+/**
+ * Service responsible for handling user-related operations in the Personal Finance Manager application.
+ * <p>
+ * Provides methods for user registration, authentication, and profile management.
+ * This service acts as the main layer between the controllers and the {@link JK.pfm.repository.UserRepository}.
+ */
 @Service
 public class UserService {
     private final UserRepository userRepository;
@@ -38,7 +44,19 @@ public class UserService {
     }
       
     
-    //saving users
+    /**
+    * Registers a new user and initializes default resources.
+    * <p>
+    * Validates username uniqueness, hashes password, creates default
+    * {@link JK.pfm.model.UserSettings} (with EUR as default currency), and seeds
+    * {@link JK.pfm.model.UserCategoryPreference} entries for all default
+    * {@link JK.pfm.model.Category} values. Runs in a single transaction.
+    * 
+    * @param dto the DTO containing username and password
+    * @return the created {@link User} entity
+    * @throws ResponseStatusException if the username is already in use
+    *         This exception is handled by the global exception handler to produce a standardized error response.
+    */
     @Transactional
     public User saveUser(UserRegistrationDto dto) {
     // Check if username is already taken
@@ -68,7 +86,19 @@ public class UserService {
     
     }
 
-
+    /**
+    * Authenticates a user by verifying their credentials and returns a JWT token.
+    *<p>
+    * Validates the provided username and password using the configured
+    * {@code PasswordEncoder}. If authentication succeeds, generates and returns
+    * a JWT token for subsequent authorized requests.
+    *
+    * @param username the username of the user
+    * @param password the user's raw password
+    * @return a JWT token if authentication is successful
+    * @throws org.springframework.web.server.ResponseStatusException
+    *         if the username does not exist or the password is invalid (401 UNAUTHORIZED)
+    */
     public String login(String username, String password) {
    
     User foundUser = userRepository.findByUsername(username)
@@ -88,7 +118,17 @@ public class UserService {
     return JWTUtil.generateToken(username);
 }
     
-    //change username
+    /**
+    * Changes the username of the currently authenticated user.
+    * <p>
+    * Checks for username availability, updates the user record, and returns a
+    * new JWT token reflecting the updated username.
+    *
+    * @param username the new username to set
+    * @return a newly generated JWT token with the updated username
+    * @throws org.springframework.web.server.ResponseStatusException
+    *         if the username is already taken (409 CONFLICT)
+    */
     @Transactional
     public String changeUsername(String username){
         if (userRepository.existsByUsername(username)) {
@@ -105,7 +145,18 @@ public class UserService {
   
     }
     
-    //change password
+    /**
+    * Changes the password of the currently authenticated user.
+    * <p>
+    * Verifies that the provided current password is correct and that the new
+    * password matches its confirmation field before updating the record.
+    *
+    * @param request the DTO containing the current password, new password, and confirmation
+    * @throws org.springframework.web.server.ResponseStatusException
+    *         if the current password is incorrect (401 UNAUTHORIZED) or if the
+    *         new password and confirmation do not match (400 BAD REQUEST)
+    */
+
     @Transactional
     public void changePassword(changePasswordRequestDTO request){
         

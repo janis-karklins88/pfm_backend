@@ -40,12 +40,28 @@ public class AccountService {
     
 
     
-    //getting accounts for user
+    /**
+    * Returns all active accounts for the specified user.
+    *
+    * @param userId the ID of the user whose accounts to fetch
+    * @return a list of active {@link JK.pfm.model.Account} records
+    */
     public List<Account> getAccountsForUser(Long userId) {
         return accountRepository.findByUserIdAndActiveTrue(userId);
     }
 
-    //saving account
+    /**
+    * Creates a new account for the currently authenticated user.
+    * <p>
+    * If the requested initial amount is greater than zero, an opening balance
+    * transaction is created using the {@code "Opening Balance"} category.
+    *
+    * @param request the account creation payload (name and optional initial amount)
+    * @return the persisted {@link JK.pfm.model.Account}
+    * @throws org.springframework.web.server.ResponseStatusException
+    *         if an active account with the same name already exists (409 CONFLICT) or
+    *         if the opening balance category cannot be found (404 NOT FOUND)
+    */
     @Transactional
     public Account saveAccount(AccountCreationRequest request) {
 
@@ -87,7 +103,16 @@ public class AccountService {
         return saved;
     }
 
-    //deleting account
+    /**
+    * Deletes (soft-deactivates) an account by ID for the currently authenticated user.
+    * <p>
+    * The account must have a zero balance; otherwise, deletion is rejected.
+    *  
+    * @param id the ID of the account to delete
+    * @throws org.springframework.web.server.ResponseStatusException
+    *         if the account is not found or inactive (404 NOT FOUND), or
+    *         if the account still has funds (409 CONFLICT)
+    */
     @Transactional
     public void deleteAccount(Long id) {
         Long userId = SecurityUtil.getUserId();
@@ -112,13 +137,29 @@ public class AccountService {
     }
 
     
-    //getting total balance
+    /**
+    * Returns the total balance across all active accounts for the
+    * currently authenticated user.
+    *
+    * @return the aggregated {@link java.math.BigDecimal} balance
+    */
     public BigDecimal getTotalBalance(){
         Long userId = SecurityUtil.getUserId();
         return accountRepository.getTotalBalanceByUserId(userId);
     }
     
-    //updating account name
+    /**
+    * Renames an account for the currently authenticated user.
+    * <p>
+    * Name must be unique among the user's active accounts.
+    *
+    * @param id the ID of the account to rename
+    * @param request the payload containing the new account name
+    * @return the updated {@link JK.pfm.model.Account}
+    * @throws org.springframework.web.server.ResponseStatusException
+    *         if the account is not found (404 NOT FOUND) or
+    *         if another active account already uses the requested name (409 CONFLICT)
+    */
     @PreAuthorize("@securityUtil.isCurrentUserAccount(#id)")
     @Transactional
     public Account updateAccountName(Long id, ChangeAccountNameDto request) {
@@ -143,7 +184,27 @@ public class AccountService {
         return accountRepository.save(account);
     }
     
-    //account funds transfer
+    /**
+    * Transfers funds between two of the user's accounts by creating a pair of transactions.
+    * <p>
+    * Depending on {@code request.type}:
+    * <ul>
+    *   <li><b>Deposit</b>: deposits into {@code accountId} and withdraws from {@code request.accountName}</li>
+    *   <li><b>Withdraw</b>: withdraws from {@code accountId} and deposits into {@code request.accountName}</li>
+    * </ul>
+    * The {@code "Fund Transfer"} category is used for both transactions. Insufficient funds
+    * on the withdrawal side are rejected.
+    *
+    * @param accountId the primary account ID (deposit target if type = "Deposit"; withdrawal source if type = "Withdraw")
+    * @param request the transfer details (counterparty account name, amount, and type)
+    * @return the account affected on the primary side of the operation
+    *         (deposit target for "Deposit", withdrawal source for "Withdraw")
+    * @throws org.springframework.web.server.ResponseStatusException
+    *         if any referenced account is not found (404 NOT FOUND),
+    *         if the transfer category is not found (404 NOT FOUND),
+    *         if funds are insufficient (409 CONFLICT), or
+    *         if the transfer type is unknown (400 BAD REQUEST)
+    */
     @Transactional
     public Account transferAccountFunds(Long accountId, SavingsFundTransferDTO request){
         

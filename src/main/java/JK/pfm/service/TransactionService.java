@@ -43,7 +43,25 @@ public class TransactionService {
     }
     
     
-    // Save a new transaction with validations and account balance updates
+    /**
+    * Save a new transaction for the authenticated user, applying validations and updating the
+    * linked account balance atomically.
+    *
+    * <p>Rules:
+    * <ul>
+    *   <li>Account must exist, be active, and belong to the authenticated user.</li>
+    *   <li>Category must exist.</li>
+    *   <li>Type "Expense" subtracts from account balance and requires sufficient funds.</li>
+    *   <li>Type "Deposit" adds to account balance.</li>
+    * </ul>
+    *
+    * <p>This method is transactional; the transaction and balance update succeed or fail together.
+    *
+    * @param request payload containing date, amount, account name, category id, type, and description
+    * @return the persisted {@link Transaction}
+    * @throws org.springframework.web.server.ResponseStatusException
+    *         NOT_FOUND if account or category is missing; CONFLICT if insufficient funds
+    */
     @Transactional
     public Transaction saveTransaction(TransactionCreationRequest request) {
         // Retrieve the authenticated user details
@@ -90,17 +108,46 @@ public class TransactionService {
         return transactionRepository.save(transaction);
     }
     
-    // Get all transactions (if needed)
+    /**
+    * Retrieve all transactions (no filtering).
+    *
+    * <p>Intended for administrative or internal use. Prefer filtered queries for user-facing views.
+    *
+    * @return list of all {@link Transaction} entities
+    */
     public List<Transaction> getAllTransactions() {
         return transactionRepository.findAll();
     }
     
-    // Get transaction by id
+    /**
+    * Find a single transaction by its id.
+    *
+    * @param id the transaction id
+    * @return an {@link Optional} containing the transaction if found; empty otherwise
+    */
     public Optional<Transaction> getTransactionById(Long id) {
         return transactionRepository.findById(id);
     }
     
-    // Delete a transaction by id, adjusting account balance before deletion
+    /**
+    * Delete a transaction and revert its impact on the linked account balance.
+    *
+    * <p>Security: only the owner of the transaction may delete it
+    * (enforced via {@code @PreAuthorize("@securityUtil.isCurrentUserTransaction(#id)")}).
+    *
+    * <p>Rules:
+    * <ul>
+    *   <li>Transactions in categories "Savings", "Fund Transfer", or "Opening Account" cannot be deleted.</li>
+    *   <li>Reverts balance: "Expense" adds the amount back; "Deposit" subtracts it (requires sufficient funds).</li>
+    * </ul>
+    *  
+    * <p>Operation is transactional; the balance adjustment and deletion occur atomically.
+    *
+    * @param id the transaction id to delete
+    * @throws org.springframework.web.server.ResponseStatusException
+    *         NOT_FOUND if transaction does not exist; BAD_REQUEST if deleting is prohibited;
+    *         CONFLICT if resulting balance would be negative when reverting a deposit
+    */
     @PreAuthorize("@securityUtil.isCurrentUserTransaction(#id)")
     @Transactional
     public void deleteTransaction(Long id) {
@@ -139,7 +186,20 @@ public class TransactionService {
         transactionRepository.deleteById(id);
     }
     
-    // Get transactions by filters including a filter for the authenticated user
+    /**
+    * Query transactions by optional filters and restrict results to the specified user.
+    *
+    * <p>Supported filters (all optional): date range (inclusive), category, account, type.
+    * Results are always scoped to {@code userId} and sorted by {@code date DESC}, then {@code id DESC}.
+    *
+    * @param startDate start of date range (inclusive), or {@code null}
+    * @param endDate end of date range (inclusive), or {@code null}
+    * @param categoryId category id filter, or {@code null}
+    * @param accountId account id filter, or {@code null}
+    * @param userId required user id to scope results
+    * @param type transaction type filter (e.g., "Expense", "Deposit"), or {@code null}
+    * @return list of matching {@link Transaction} entities
+    */
     public List<Transaction> getTransactionsByFilters
         (LocalDate startDate, LocalDate endDate, Long categoryId, Long accountId,  Long userId, String type) {
         Specification<Transaction> spec = Specification.where(null);
@@ -178,7 +238,13 @@ public class TransactionService {
         return transactionRepository.findAll(spec, sort);
 }
     
-    //get recent transactions
+    /**
+    * Fetch the 5 most recent transactions across all active accounts for the authenticated user.
+    *
+    * <p>If the user has no accounts, returns an empty list.
+    *
+    * @return up to 5 most recent {@link Transaction} entities ordered by id descending
+    */
     public List<Transaction> getRecentTransactions() {
         List<Long> accountIds = accountUtil.getUserAccountIds();
         if (accountIds.isEmpty()) {

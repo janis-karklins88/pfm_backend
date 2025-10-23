@@ -30,6 +30,7 @@ import org.springframework.web.server.ResponseStatusException;
 public class BudgetService {
 
     private final BudgetRepository budgetRepository;
+
     private final UserRepository userRepository;
     private final CategoryRepository categoryRepository;
     private final AccountUtil accountUtil;
@@ -47,7 +48,15 @@ public class BudgetService {
     }
 
     
-    //getting all budgets for user
+    /**
+     * Retrieves all budgets for the currently authenticated user, optionally filtered by date range.
+     * <p>
+     * Applies {@link JK.pfm.specification.BudgetSpecifications} to limit results
+     * based on ownership and optional start/end date boundaries.
+     *
+     * @param filter the date range filter containing start and/or end dates
+     * @return a list of matching {@link JK.pfm.model.Budget} entities
+     */
     public List<Budget> getAllBudgets(DateRangeFilter filter) {
     // Start with the specification that filters budgets by user
     Specification<Budget> spec = Specification.where(BudgetSpecifications.belongsToUser(SecurityUtil.getUserId()));
@@ -66,7 +75,14 @@ public class BudgetService {
     return budgetRepository.findAll(spec);
     }
 
-    //saving budget
+    /**
+     * Creates and saves a new budget for the currently authenticated user.
+     *
+     * @param request the budget creation payload containing amount, category ID, and date range
+     * @return the created {@link JK.pfm.model.Budget}
+     * @throws org.springframework.web.server.ResponseStatusException
+     *         if the specified category does not exist (404 NOT FOUND)
+     */
     public Budget saveBudget(BudgetCreationRequest request) {
         //get user
         User user = SecurityUtil.getUser(userRepository);
@@ -83,8 +99,14 @@ public class BudgetService {
         
         return budgetRepository.save(budget);
     }
-
-    //deleting budget
+    /**
+     * Deletes a budget by ID for the currently authenticated user.
+     *
+     * @param budgetId the ID of the budget to delete
+     * @return {@code true} if deletion succeeds
+     * @throws org.springframework.web.server.ResponseStatusException
+     *         if the budget is not found (404 NOT FOUND)
+     */
     @PreAuthorize("@securityUtil.isCurrentUserBudget(#budgetId)")
     public boolean deleteBudgetForUser(Long budgetId) {
         Budget budget = budgetRepository.findById(budgetId)
@@ -97,12 +119,25 @@ public class BudgetService {
     }
 
 
-    //getting budget by id
+    /**
+     * Retrieves a budget by its ID.
+     *
+     * @param id the budget ID
+     * @return an {@link java.util.Optional} containing the {@link JK.pfm.model.Budget} if found
+     */
     public Optional<Budget> getBudgetById(Long id) {                                                         
         return budgetRepository.findById(id);
     }
     
-    //update amount
+    /**
+     * Updates the amount of an existing budget.
+     *
+     * @param id the ID of the budget to update
+     * @param request the payload containing the new budget amount
+     * @return the updated {@link JK.pfm.model.Budget}
+     * @throws org.springframework.web.server.ResponseStatusException
+     *         if the budget is not found (404 NOT FOUND)
+     */
     @PreAuthorize("@securityUtil.isCurrentUserBudget(#id)")
     @Transactional
     public Budget updateBudgetAmount(Long id, UpdateBudgetAmountDto request){    
@@ -118,7 +153,14 @@ public class BudgetService {
         return budgetRepository.save(budget);
     }
     
-    //get total spent on budget
+    /**
+     * Calculates the total amount spent within the category and date range of a budget.
+     *
+     * @param id the ID of the budget to evaluate
+     * @return the total amount spent as {@link java.math.BigDecimal}
+     * @throws org.springframework.web.server.ResponseStatusException
+     *         if the budget is not found (404 NOT FOUND)
+     */
     @PreAuthorize("@securityUtil.isCurrentUserBudget(#id)")
     public BigDecimal getTotalSpentOnBudget(Long id){
         //get budget
@@ -134,8 +176,12 @@ public class BudgetService {
         return budgetRepository.getTotalSpentOnBudget(budget.getCategory().getId(), budget.getStartDate(), budget.getEndDate(), accountIds);
     } 
     
-    // Recreate budgets for next month
-    // (switch back to cron once you’re done testing)
+    /**
+     * Automatically recreates monthly budgets for the next month.
+     * <p>
+     * Scheduled to run daily at midnight. For each active monthly budget,
+     * creates a new instance for the upcoming month if it does not already exist.
+     */
     @Scheduled(cron = "0 0 0 * * *")
     @Transactional
     public void createNextMonthBudgets() {
@@ -173,7 +219,15 @@ public class BudgetService {
     }
 
     
-    //set monthly active/inactive
+    /**
+     * Updates the monthly recurrence status of a budget.
+     *
+     * @param id the ID of the budget to update
+     * @param active {@code true} to enable monthly recurrence, {@code false} to disable it
+     * @return the updated {@link JK.pfm.model.Budget}
+     * @throws org.springframework.web.server.ResponseStatusException
+     *         if the budget is not found (404 NOT FOUND)
+     */
     @PreAuthorize("@securityUtil.isCurrentUserBudget(#id)")
     public Budget updateMonthlyStatus(Long id, boolean active){
         Budget budget = budgetRepository.findById(id)

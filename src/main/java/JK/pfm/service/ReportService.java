@@ -29,7 +29,6 @@ import org.springframework.stereotype.Service;
 
 @Service
 public class ReportService {
-
     private final TransactionRepository transactionRepository;
     private final AccountService accountService;
     private final SavingsGoalService savingsGoalsService;
@@ -58,7 +57,14 @@ public class ReportService {
 
 
     /*********************************GET TOTAL SPENDING AND INCOME***************************************/
-    
+    /**
+     * Calculates the total spending and income for the current user within a given date range.
+     * <p>
+     * If no range is provided, results default to all available transactions.
+     *
+     * @param filter optional start and end dates defining the report range
+     * @return a map containing {@code totalSpending} and {@code totalIncome} values
+     */
     public Map<String, BigDecimal> getSpendingAndIncomeSummary(DateRangeFilter filter) {
 
         //get user accounts    
@@ -80,7 +86,11 @@ public class ReportService {
     }
 
     /*********************************GET TOTALUSER BALANCE****************************************/
-    
+    /**
+     * Calculates the user's total combined balance across all active accounts and savings goals.
+     *
+     * @return the total balance as {@link java.math.BigDecimal}
+     */
     public BigDecimal getTotalUserBalance(){
         BigDecimal sum = accountService.getTotalBalance().add(savingsGoalsService.getTotalBalance());
         return sum;
@@ -89,14 +99,11 @@ public class ReportService {
     
     /*********************************EXPENSE BREAKDOWN BY CATEGORY****************************************/
     /**
-    * Retrieves the total expenses grouped by category for the current user
-    * between the given start and end dates.
-    *
-    * @param getStartDate() the first date (inclusive) of the period to query
-    * @param getEndDate()   the last date (inclusive) of the period to query
-    * @return      a List of ExpenseByCategoryDTO, one entry per category;
-    *              returns an empty list if the user has no accounts
-    */
+     * Retrieves the user's total expenses grouped by category for the specified period.
+     *
+     * @param filter date range filter specifying start and end dates
+     * @return a list of {@link JK.pfm.dto.ExpenseByCategoryDTO} objects; empty if the user has no accounts
+     */
     public List<ExpenseByCategoryDTO> getSpendingByCategory(DateRangeFilter filter) {
         List<Long> accountIds = accountUtil.getUserAccountIds();
         // If no accounts exist for the user, return an empty map
@@ -110,14 +117,11 @@ public class ReportService {
     
     /*********************************EXPENSE BREAKDOWN BY Account****************************************/
     /**
-    * Retrieves the total expenses grouped by accounts for the current user
-    * between the given start and end dates.
-    *
-    * @param start the first date (inclusive) of the period to query
-    * @param end   the last date (inclusive) of the period to query
-    * @return      a List of ExpenseByAccountDTO, one entry per account;
-    *              returns an empty list if the user has no accounts
-    */
+     * Retrieves the user's total expenses grouped by account for the specified period.
+     *
+     * @param filter date range filter specifying start and end dates
+     * @return a list of {@link JK.pfm.dto.ExpenseByAccountDTO} objects; empty if the user has no accounts
+     */
     public List<ExpenseByAccountDTO> getSpendingByAccount(DateRangeFilter filter) {
         List<Long> accountIds = accountUtil.getUserAccountIds();
         // If no accounts exist for the user, return an empty map
@@ -132,7 +136,14 @@ public class ReportService {
     
     
     /*********************************GET DAILY TRENDS****************************************/
-    
+    /**
+     * Returns daily aggregated income and expense totals for the specified date range.
+     * <p>
+     * Sums transactions by date and type, and returns results sorted ascending by date.
+     *
+     * @param filter the date range (inclusive) to analyze
+     * @return a list of {@link JK.pfm.dto.DailyTrend} with per-day income and expense totals
+     */
     public List<DailyTrend> getDailyTrends(DateRangeFilter filter) {
         // Retrieve daily transaction data grouped by date and type.
         List<Object[]> results = transactionRepository.getDailyTrends(filter.getStartDate(), filter.getEndDate());
@@ -161,7 +172,13 @@ public class ReportService {
     }
     
     /*********************************GET MONTHLY CASHFLOW****************************************/
-    
+    /**
+    * Builds a monthly cash-flow series for the last seven months (including the current month).
+     * <p>
+     * For each month, computes total inflow (income), outflow (spending), and net flow.
+     *
+     * @return a list of {@link JK.pfm.dto.CashFlowDTO} ordered chronologically by month
+     */
     public List<CashFlowDTO> getMonthlyCashFlow() {
         
        List<CashFlowDTO> cashFlowList = new ArrayList<>();
@@ -189,7 +206,11 @@ public class ReportService {
     }
     
     /*********************************GETBALANCE BREAKDOWN****************************************/
-    
+    /**
+     * Provides a balance breakdown across all active accounts and savings goals for the current user.
+     *
+     * @return a list of {@link JK.pfm.dto.BalanceBreakdownDTO} entries (one per account plus savings)
+     */
     public List<BalanceBreakdownDTO> getBalanceBreakdown(){
         Long userId = SecurityUtil.getUserId();
         List<Account> accounts = accountRepository.findByUserIdAndActiveTrue(userId);
@@ -208,7 +229,17 @@ public class ReportService {
     }
     
     /*********************************GET EXPENSE AND PREDICTIONS****************************************/
-    
+    /**
+     * Returns a 10-month spending history and appends a simple two-month forecast.
+     * <p>
+     * Aggregates monthly user expenses for the last 10 months (oldest → newest),
+     * then predicts the next two months using:
+     * overall average (if fewer than 6 non-zero months) or overall average
+     * scaled by a short-term trend (recent 3-month average vs. overall average).
+     * Month keys are 3-letter labels (e.g., {@code "Jan"}).
+     *
+     * @return a {@link java.util.Map} of month label → monthly amount, including two forecast entries
+     */
     public Map<String, BigDecimal> getExpenseAndPrediction(){
         //get user accounts
         List<Long> accountIds = accountUtil.getUserAccountIds();
@@ -277,7 +308,18 @@ public class ReportService {
     }
     
     /*********************************GET EXPENSE AND PREDICTION FOR SPECIFIC CATEGORY****************************************/
-    
+    /**
+     * Returns a 10-month spending history for a category and appends a simple forecast.
+     * <p>
+     * Aggregates monthly expenses for the last 10 months (oldest → newest), then
+     * appends predictions for the next two months. The prediction uses the overall
+     * average (if < 6 months of data) or the overall average adjusted by a short-term
+     * trend (recent 3-month average vs. overall average). Month keys are 3-letter
+     * labels (e.g., {@code "Jan"}).
+     *
+     * @param categoryId the category to analyze
+     * @return a {@link java.util.Map} of month label → monthly amount, including two forecast entries
+     */
     public Map<String, BigDecimal> getExpenseForCategory(Long categoryId){
         //get user accounts
         List<Long> accountIds = accountUtil.getUserAccountIds();
@@ -344,16 +386,14 @@ public class ReportService {
         return breakdown; 
     }
     
-        /**
-    * Calculates month-over-month percentage changes for:
-    *   • Income
-    *   • Expense
-    *   • Savings balance
-    *   • Total balance (accounts + savings)
-    *   • Account balance (accounts only)
-    *
-    * @return a list of ChangesVsLastMonthDTO with whole-number percentage changes
-    */
+    /**
+     * Computes month-over-month percentage changes for key financial metrics.
+     * <p>
+     * Compares the current month vs. previous month for: Income, Expense, Savings,
+     * Total balance (accounts + savings), and Account balance (accounts only).
+     *
+     * @return a list of {@link JK.pfm.dto.ChangesVsLastMonthDTO} with percentage changes per metric
+     */
     public List<ChangesVsLastMonthDTO> getChanges() {
         List<ChangesVsLastMonthDTO> changes = new ArrayList<>();
 
@@ -403,7 +443,16 @@ public class ReportService {
         return changes;
 }
 
-    //helper method for calculating changes in percentages
+    /**
+     * Calculates the percentage change between two numeric values.
+     * <p>
+     * Returns 0% if both values are zero, or 100% if the previous value is zero
+     * and the current value is positive. Rounds to the nearest whole percent.
+     *
+     * @param current  the current period value
+     * @param previous the previous period value
+     * @return the percentage change as {@link java.math.BigDecimal}, rounded to 0 decimal places
+     */
     private BigDecimal calculatePercentChange(BigDecimal current, BigDecimal previous) {
      if (previous.compareTo(BigDecimal.ZERO) == 0) {
             return current.compareTo(BigDecimal.ZERO) == 0
