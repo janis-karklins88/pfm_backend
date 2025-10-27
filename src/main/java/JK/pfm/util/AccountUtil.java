@@ -6,6 +6,16 @@ import org.springframework.stereotype.Component;
 import java.util.List;
 import java.util.stream.Collectors;
 
+/**
+ * Utility component that provides helper methods for account-related lookups,
+ * typically used by services to resolve the current user’s accounts.
+ *
+ * <p>This class abstracts common account access logic and depends on
+ * {@link AccountRepository} and {@link SecurityUtil} to ensure that lookups
+ * are always scoped to the authenticated user.</p>
+ *
+ * <p>Intended for internal use within the service layer.</p>
+ */
 @Component
 public class AccountUtil {
 
@@ -16,8 +26,12 @@ public class AccountUtil {
     }
 
     /**
-     * Fetches the IDs of all accounts belonging to the current user.
-     * If the user has no accounts, returns an empty list.
+     * Retrieves the IDs of all active accounts belonging to the authenticated user.
+     *
+     * <p>The current user ID is resolved via {@link SecurityUtil#getUserId()}.
+     * If the user has no accounts, an empty list is returned.</p>
+     *
+     * @return list of active account IDs owned by the current user (never {@code null})
      */
     public List<Long> getUserAccountIds() {
         Long userId = SecurityUtil.getUserId();

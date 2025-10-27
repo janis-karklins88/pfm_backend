@@ -9,6 +9,21 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.Optional;
 
+/**
+ * Seeds and maintains system-wide {@link Category} records at application startup.
+ *
+ * <p>Behavior:</p>
+ * <ul>
+ *   <li>Creates or updates a fixed set of user-default categories (visible to every user).</li>
+ *   <li>Creates or updates system-only categories (not user-selectable).</li>
+ *   <li>Idempotent: re-runs safely; existing categories are updated if the {@code isDefault} flag differs.</li>
+ * </ul>
+ *
+ * <p>Transactionality: the seeding runs within a single transaction.</p>
+ *
+ * <p><strong>Deployment note:</strong> In production you may want to guard this runner by a Spring profile
+ * (e.g., {@code @Profile("init")}) or a property flag to avoid unintended edits.</p>
+ */
 @Component
 public class SystemCategoryInitializer implements CommandLineRunner {
 
@@ -18,6 +33,7 @@ public class SystemCategoryInitializer implements CommandLineRunner {
         this.categoryRepo = categoryRepo;
     }
 
+    
     @Override
     @Transactional
     public void run(String... args) throws Exception {
