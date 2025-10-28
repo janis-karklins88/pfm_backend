@@ -51,20 +51,20 @@ backend/
 │  └─ application.yml                # (test-only overrides if used)
 │
 └─ pom.xml
+```
 
-The app reads application.properties by default, with an optional perf profile via application-perf.properties.
+## Configuration
+The app reads `application.properties` by default, with an optional **perf** profile via `application-perf.properties`.
 
-
-
+```properties
 spring.datasource.url=jdbc:mysql://localhost:3306/personal_finance_manager
 spring.datasource.username=root
 spring.datasource.password=CHANGE_ME
 spring.jpa.hibernate.ddl-auto=update
 spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.MySQL8Dialect
-Perf profile (src/main/resources/application-perf.properties)
-
-
 ```
+
+
 ### Perf Profile (`src/main/resources/application-perf.properties`)
 
 ```properties
