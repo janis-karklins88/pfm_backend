@@ -1,21 +1,21 @@
 # Personal Finance Manager — Backend (Spring Boot)
 
-Backend API for the **PFM** app.  
+Backend API for the PFM app.  
 Handles authentication, categories (system + user preferences), transactions, expenses, budgets, savings goals, and analytics.
 
 ---
 
-## 🧰 Tech Stack
-- **Java 23**, **Spring Boot 3**
-- **Spring Data JPA** (Hibernate)
-- **MySQL** (dev/perf), **H2** (tests)
-- **JWT** authentication
-- **Maven**
-- **Lombok**, **Jakarta Validation**, **Spring Security**
+## Tech Stack
+- Java 23, Spring Boot 3
+- Spring Data JPA (Hibernate)
+- MySQL (dev/perf), H2 (tests)
+- JWT authentication
+- Maven
+- Lombok, Jakarta Validation, Spring Security
 
 ---
 
-## 🗂️ Project Structure (Backend)
+## Project Structure (Backend)
 ```
 backend/
 ├─ src/main/java/JK/pfm/
@@ -61,9 +61,10 @@ spring.datasource.username=root
 spring.datasource.password=CHANGE_ME
 spring.jpa.hibernate.ddl-auto=update
 spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.MySQL8Dialect
-⚡ Perf profile (src/main/resources/application-perf.properties)
+Perf profile (src/main/resources/application-perf.properties)
 
 
+```
 # MySQL perf database
 spring.datasource.url=jdbc:mysql://localhost:3306/pfm_perf?useSSL=false&serverTimezone=UTC&rewriteBatchedStatements=true
 spring.datasource.username=pfm_perf_user
@@ -155,7 +156,7 @@ Algorithm: HMAC-SHA256
 
 Expiration: 24 hours (hardcoded in generateToken())
 
-🛡️ For production, externalize the secret key in environment variables or config files.
+For production, externalize the secret key in environment variables or config files.
 
 Users & Auth – JWT-based registration and login
 
@@ -180,38 +181,45 @@ If you don’t want seeding on every boot, wrap the logic with a guard (e.g., ch
 UserCategoryPreferenceInitializer (JK.pfm.bootstrap)
 Bootstraps user category preferences and base category visibility at startup.
 
-Area	Method	Path	Description
-Authentication	POST	/api/users/register	Register a new user
-POST	/api/users/login	Authenticate user and receive JWT token
-Categories	GET	/api/categories	Get list of active categories for current user
-GET	/api/categories/all	Get all base (system) categories
-User Preferences	GET	/api/user-categories	List user category preferences (active/inactive)
-POST	/api/user-categories/{categoryId}/activate	Activate category for user
-POST	/api/user-categories/{categoryId}/deactivate	Deactivate category for user
-Transactions	GET	/api/transactions	Get user transactions (supports filters & sorting)
-POST	/api/transactions	Create a new transaction
-PUT	/api/transactions/{id}	Update existing transaction
-DELETE	/api/transactions/{id}	Delete transaction
-Budgets	GET	/api/budgets	Get list of budgets
-POST	/api/budgets	Create new budget
-Savings Goals	GET	/api/savings	Get list of user savings goals
-GET	/api/savings/total	Get total savings balance for user
-POST	/api/savings	Create new savings goal
-PUT	/api/savings/{id}	Update existing savings goal
-DELETE	/api/savings/{id}	Delete savings goal
-Dashboard / Stats	GET	/api/dashboard/summary	Fetch overview data for dashboard charts
+## REST Endpoints Overview
 
-All errors are centralized via GlobalExceptionHandler and returned as JSON:
+| **Area**              | **Method** | **Path**                                     | **Description** |
+|------------------------|------------|----------------------------------------------|-----------------|
+| **Authentication**     | POST       | `/api/users/register`                        | Register a new user |
+|                        | POST       | `/api/users/login`                           | Authenticate user and receive JWT token |
+| **Categories**         | GET        | `/api/categories`                            | Get list of active categories for the current user |
+|                        | GET        | `/api/categories/all`                        | Get all base (system) categories |
+| **User Preferences**   | GET        | `/api/user-categories`                       | List user category preferences (active/inactive) |
+|                        | POST       | `/api/user-categories/{categoryId}/activate` | Activate category for user |
+|                        | POST       | `/api/user-categories/{categoryId}/deactivate` | Deactivate category for user |
+| **Transactions**       | GET        | `/api/transactions`                          | Get user transactions (supports filters & sorting) |
+|                        | POST       | `/api/transactions`                          | Create a new transaction |
+|                        | PUT        | `/api/transactions/{id}`                     | Update existing transaction |
+|                        | DELETE     | `/api/transactions/{id}`                     | Delete transaction |
+| **Budgets**            | GET        | `/api/budgets`                               | Get list of budgets |
+|                        | POST       | `/api/budgets`                               | Create new budget |
+| **Savings Goals**      | GET        | `/api/savings`                               | Get list of user savings goals |
+|                        | GET        | `/api/savings/total`                         | Get total savings balance for user |
+|                        | POST       | `/api/savings`                               | Create new savings goal |
+|                        | PUT        | `/api/savings/{id}`                          | Update existing savings goal |
+|                        | DELETE     | `/api/savings/{id}`                          | Delete savings goal |
+| **Dashboard / Stats**  | GET        | `/api/dashboard/summary`                     | Fetch overview data for dashboard charts |
 
 
+## Error Handling and Response Format
+
+All errors are centralized via `GlobalExceptionHandler` and returned as JSON:
+
+```json
 {
   "message": "Short human-readable error",
   "path": "/api/endpoint",
   "timestamp": "2025-10-27T08:30:00"
 }
-Status Codes & Sources
+
+Status Codes and Sources
 HTTP Status	When it happens	Source in code
-400 Bad Request	Bean validation fails (@Valid): multiple field messages are joined with ;	handleValidation(MethodArgumentNotValidException)
+400 Bad Request	Bean validation fails (@Valid); multiple field messages are joined with ;	handleValidation(MethodArgumentNotValidException)
 409 Conflict	Manual conflicts (e.g., username taken) or optimistic locking	handleStatusExc(ResponseStatusException), handleOptimisticLock(ObjectOptimisticLockingFailureException)
 500 Internal Server Error	Any unhandled exception	handleAll(Exception)
 
