@@ -65,6 +65,9 @@ Perf profile (src/main/resources/application-perf.properties)
 
 
 ```
+### Perf Profile (`src/main/resources/application-perf.properties`)
+
+```properties
 # MySQL perf database
 spring.datasource.url=jdbc:mysql://localhost:3306/pfm_perf?useSSL=false&serverTimezone=UTC&rewriteBatchedStatements=true
 spring.datasource.username=pfm_perf_user
@@ -76,9 +79,13 @@ spring.jpa.hibernate.ddl-auto=create-drop
 
 # Optional: SQL visibility for perf runs
 spring.jpa.show-sql=true
+```
 
+---
 
+### Activating Profiles
 
+```bash
 # Maven run
 mvn spring-boot:run -Dspring-boot.run.profiles=perf
 
@@ -88,10 +95,15 @@ java -jar target/pfm-backend-*.jar --spring.profiles.active=perf
 # Environment variable
 set SPRING_PROFILES_ACTIVE=perf   # Windows
 export SPRING_PROFILES_ACTIVE=perf # macOS/Linux
+```
+
+---
+
+## Build & Run
 
 From the backend folder:
 
-
+```bash
 # 1) Build
 mvn clean package
 
@@ -103,83 +115,101 @@ mvn spring-boot:run
 # Performance profile
 mvn spring-boot:run -Dspring-boot.run.profiles=perf
 
-# or run the JAR directly
+# Or run the JAR directly
 java -jar target/personalFinanceManager-*.jar --spring.profiles.active=perf
-Default port:
+```
+
+**Default port:**  
 http://localhost:8080
 
-NetBeans / IDE usage
-Project Properties → Run → VM Options →
-
-
+**NetBeans / IDE usage**  
+Project Properties → Run → VM Options:
+```
 -Dspring.profiles.active=perf
+```
 (Leave empty to run with the default configuration.)
 
-When running tests (mvn test), the application automatically uses the H2 in-memory database defined in
-src/test/resources/application-test.properties.
+---
 
-Endpoints
+## Testing
 
-POST /api/users/register
+When running tests (`mvn test`), the application automatically uses the **H2 in-memory database** defined in  
+`src/test/resources/application-test.properties`.
 
-POST /api/users/login → returns { "token": "jwt..." }
+---
+
+## Authentication (JWT)
+
+### Endpoints
+
+- `POST /api/users/register`
+- `POST /api/users/login` → returns `{ "token": "jwt..." }`
 
 Use the token in all protected endpoints:
-
-
+```
 Authorization: Bearer <token>
-Register example
+```
 
+### Examples
 
+```bash
+# Register
 curl -X POST http://localhost:8080/api/users/register \
   -H "Content-Type: application/json" \
   -d '{ "username":"User","password":"StrongPass123" }'
-Login example
 
-
+# Login
 curl -X POST http://localhost:8080/api/users/login \
   -H "Content-Type: application/json" \
   -d '{ "username":"User","password":"StrongPass123" }'
-Response
+```
 
-
+### Response
+```json
 {
   "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
 }
+```
 
-The JWT secret and expiration time are currently defined directly inside
-JWTUtil.java:
+---
 
+## JWT Configuration
 
+The JWT secret and expiration time are currently defined directly inside  
+`JWTUtil.java`:
+
+```java
 private static final String SECRET_KEY = "yourSuperSecretKey1234567890123456";
-Algorithm: HMAC-SHA256
+```
 
-Expiration: 24 hours (hardcoded in generateToken())
+- **Algorithm:** HMAC-SHA256  
+- **Expiration:** 24 hours (hardcoded in `generateToken()`)
 
 For production, externalize the secret key in environment variables or config files.
 
-Users & Auth – JWT-based registration and login
+---
 
-System Categories – Predefined, visible to all users
+## Core Features
 
-User Category Preferences – Activate/deactivate, list per user
+- Users & Auth – JWT-based registration and login  
+- System Categories – Predefined, visible to all users  
+- User Category Preferences – Activate/deactivate, list per user  
+- Transactions – CRUD, filtering, and sorting  
+- Budgets – Create and track per category/period  
+- Savings Goals – Create, update, total balance tracking  
+- Dashboard – Summary endpoints for analytics
 
-Transactions – CRUD, filtering & sorting
+---
 
-Budgets – Create and track per category/period
+## System Categories Seeding
 
-Savings Goals – Create, update, total balance tracking
+`SystemCategoryInitializer` runs on startup and ensures baseline categories exist (visible to every user), for example:  
+Food, Housing, Transportation, Household supplies, Rent, Eating out, Entertainment, Trips, Parties, Subscriptions, etc.
 
-Dashboard – Summary endpoints for analytics
+If you don’t want seeding on every boot, wrap the logic with a guard (e.g., check if the table is empty) or disable the `CommandLineRunner` bean.
 
-SystemCategoryInitializer runs on startup and ensures baseline categories exist (visible to every user), e.g.:
+`UserCategoryPreferenceInitializer` (`JK.pfm.bootstrap`) bootstraps user category preferences and base category visibility at startup.
 
-Food, Housing, Transportation, Household supplies, Rent, Eating out, Entertainment, Trips, Parties, Subscriptions, …
-
-If you don’t want seeding on every boot, wrap the logic with a guard (e.g., check if the table is empty) or disable the CommandLineRunner bean.
-
-UserCategoryPreferenceInitializer (JK.pfm.bootstrap)
-Bootstraps user category preferences and base category visibility at startup.
 
 ## REST Endpoints Overview
 
@@ -216,17 +246,26 @@ All errors are centralized via `GlobalExceptionHandler` and returned as JSON:
   "path": "/api/endpoint",
   "timestamp": "2025-10-27T08:30:00"
 }
+```
 
-Status Codes and Sources
-HTTP Status	When it happens	Source in code
-400 Bad Request	Bean validation fails (@Valid); multiple field messages are joined with ;	handleValidation(MethodArgumentNotValidException)
-409 Conflict	Manual conflicts (e.g., username taken) or optimistic locking	handleStatusExc(ResponseStatusException), handleOptimisticLock(ObjectOptimisticLockingFailureException)
-500 Internal Server Error	Any unhandled exception	handleAll(Exception)
+| **HTTP Status** | **When it Happens** | **Source in Code** |
+|------------------|----------------------|--------------------|
+| **400 Bad Request** | Bean validation fails (`@Valid`); multiple field messages are joined with `;` | `handleValidation(MethodArgumentNotValidException)` |
+| **409 Conflict** | Manual conflicts (e.g., username taken) or optimistic locking failures | `handleStatusExc(ResponseStatusException)` <br> `handleOptimisticLock(ObjectOptimisticLockingFailureException)` |
+| **500 Internal Server Error** | Any unhandled exception | `handleAll(Exception)` |
 
-Always send JWT via Authorization: Bearer <token>
+## Security Notes
 
-Backend enforces per-user resource access (IDs resolved from token)
+- Always send JWT using the header:  
+  `Authorization: Bearer <token>`
 
-CORS restricted to your frontend origin via pfm.cors.allowed-origins
+- Backend enforces **per-user resource access**, with user IDs resolved from the authenticated token.
 
-For portfolio and educational use.
+- CORS is restricted to your frontend origin, configured via  
+  `pfm.cors.allowed-origins`
+
+---
+
+## License
+
+For **portfolio and educational use** only.
