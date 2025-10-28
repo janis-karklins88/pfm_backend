@@ -1,4 +1,4 @@
-# 💰 Personal Finance Manager — Backend (Spring Boot)
+# Personal Finance Manager — Backend (Spring Boot)
 
 Backend API for the **PFM** app.  
 Handles authentication, categories (system + user preferences), transactions, expenses, budgets, savings goals, and analytics.
@@ -16,7 +16,7 @@ Handles authentication, categories (system + user preferences), transactions, ex
 ---
 
 ## 🗂️ Project Structure (Backend)
-```plaintext
+```
 backend/
 ├─ src/main/java/JK/pfm/
 │  ├─ bootstrap/               # App bootstrap (seeders/initializers)
@@ -51,20 +51,19 @@ backend/
 │  └─ application.yml                # (test-only overrides if used)
 │
 └─ pom.xml
-⚙️ Configuration
+
 The app reads application.properties by default, with an optional perf profile via application-perf.properties.
 
-🧩 Default profile (src/main/resources/application.properties)
-properties
-Copy code
+
+
 spring.datasource.url=jdbc:mysql://localhost:3306/personal_finance_manager
 spring.datasource.username=root
 spring.datasource.password=CHANGE_ME
 spring.jpa.hibernate.ddl-auto=update
 spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.MySQL8Dialect
 ⚡ Perf profile (src/main/resources/application-perf.properties)
-properties
-Copy code
+
+
 # MySQL perf database
 spring.datasource.url=jdbc:mysql://localhost:3306/pfm_perf?useSSL=false&serverTimezone=UTC&rewriteBatchedStatements=true
 spring.datasource.username=pfm_perf_user
@@ -76,9 +75,9 @@ spring.jpa.hibernate.ddl-auto=create-drop
 
 # Optional: SQL visibility for perf runs
 spring.jpa.show-sql=true
-🔄 Activating Profiles
-bash
-Copy code
+
+
+
 # Maven run
 mvn spring-boot:run -Dspring-boot.run.profiles=perf
 
@@ -88,11 +87,10 @@ java -jar target/pfm-backend-*.jar --spring.profiles.active=perf
 # Environment variable
 set SPRING_PROFILES_ACTIVE=perf   # Windows
 export SPRING_PROFILES_ACTIVE=perf # macOS/Linux
-🚀 Build & Run
+
 From the backend folder:
 
-bash
-Copy code
+
 # 1) Build
 mvn clean package
 
@@ -107,21 +105,18 @@ mvn spring-boot:run -Dspring-boot.run.profiles=perf
 # or run the JAR directly
 java -jar target/personalFinanceManager-*.jar --spring.profiles.active=perf
 Default port:
-👉 http://localhost:8080
+http://localhost:8080
 
 NetBeans / IDE usage
 Project Properties → Run → VM Options →
 
-ini
-Copy code
+
 -Dspring.profiles.active=perf
 (Leave empty to run with the default configuration.)
 
-🧪 Testing
 When running tests (mvn test), the application automatically uses the H2 in-memory database defined in
 src/test/resources/application-test.properties.
 
-🔐 Authentication (JWT)
 Endpoints
 
 POST /api/users/register
@@ -130,36 +125,31 @@ POST /api/users/login → returns { "token": "jwt..." }
 
 Use the token in all protected endpoints:
 
-makefile
-Copy code
+
 Authorization: Bearer <token>
 Register example
 
-bash
-Copy code
+
 curl -X POST http://localhost:8080/api/users/register \
   -H "Content-Type: application/json" \
   -d '{ "username":"User","password":"StrongPass123" }'
 Login example
 
-bash
-Copy code
+
 curl -X POST http://localhost:8080/api/users/login \
   -H "Content-Type: application/json" \
   -d '{ "username":"User","password":"StrongPass123" }'
 Response
 
-json
-Copy code
+
 {
   "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
 }
-⚙️ JWT Configuration
+
 The JWT secret and expiration time are currently defined directly inside
 JWTUtil.java:
 
-java
-Copy code
+
 private static final String SECRET_KEY = "yourSuperSecretKey1234567890123456";
 Algorithm: HMAC-SHA256
 
@@ -167,7 +157,6 @@ Expiration: 24 hours (hardcoded in generateToken())
 
 🛡️ For production, externalize the secret key in environment variables or config files.
 
-🧠 Core Features
 Users & Auth – JWT-based registration and login
 
 System Categories – Predefined, visible to all users
@@ -182,7 +171,6 @@ Savings Goals – Create, update, total balance tracking
 
 Dashboard – Summary endpoints for analytics
 
-🌱 System Categories Seeding
 SystemCategoryInitializer runs on startup and ensures baseline categories exist (visible to every user), e.g.:
 
 Food, Housing, Transportation, Household supplies, Rent, Eating out, Entertainment, Trips, Parties, Subscriptions, …
@@ -192,7 +180,6 @@ If you don’t want seeding on every boot, wrap the logic with a guard (e.g., ch
 UserCategoryPreferenceInitializer (JK.pfm.bootstrap)
 Bootstraps user category preferences and base category visibility at startup.
 
-📚 REST Endpoints Overview
 Area	Method	Path	Description
 Authentication	POST	/api/users/register	Register a new user
 POST	/api/users/login	Authenticate user and receive JWT token
@@ -214,11 +201,9 @@ PUT	/api/savings/{id}	Update existing savings goal
 DELETE	/api/savings/{id}	Delete savings goal
 Dashboard / Stats	GET	/api/dashboard/summary	Fetch overview data for dashboard charts
 
-❗ Error Handling & Response Format
 All errors are centralized via GlobalExceptionHandler and returned as JSON:
 
-json
-Copy code
+
 {
   "message": "Short human-readable error",
   "path": "/api/endpoint",
@@ -230,12 +215,10 @@ HTTP Status	When it happens	Source in code
 409 Conflict	Manual conflicts (e.g., username taken) or optimistic locking	handleStatusExc(ResponseStatusException), handleOptimisticLock(ObjectOptimisticLockingFailureException)
 500 Internal Server Error	Any unhandled exception	handleAll(Exception)
 
-🔒 Security Notes
 Always send JWT via Authorization: Bearer <token>
 
 Backend enforces per-user resource access (IDs resolved from token)
 
 CORS restricted to your frontend origin via pfm.cors.allowed-origins
 
-📜 License
 For portfolio and educational use.
