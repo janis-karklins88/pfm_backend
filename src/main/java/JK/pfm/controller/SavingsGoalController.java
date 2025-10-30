@@ -28,45 +28,45 @@ public class SavingsGoalController {
         this.savingsGoalService =serv;
     }
 
-	/**
-	 * Retrieves all savings goals for the authenticated user.
-	 *
-	 * <p>Responds with {@code 200 OK} and a list of {@link SavingsGoal}
-	 * objects representing each goal created by the current user.</p>
-	 *
-	 * @return {@code ResponseEntity} containing the list of {@link SavingsGoal}
-	 * @implNote Delegates to {@link SavingsGoalService#getAllSavingsGoals(Long)}
-	 * using the authenticated user's ID from {@link SecurityUtil#getUserId()}.
-	 */
+    /**
+     * Retrieves all savings goals for the authenticated user.
+     *
+     * <p>Responds with {@code 200 OK} and a list of {@link SavingsGoal}
+     * objects representing each goal created by the current user.</p>
+     *
+     * @return {@code ResponseEntity} containing the list of {@link SavingsGoal}
+     * @implNote Delegates to {@link SavingsGoalService#getAllSavingsGoals(Long)}
+     * using the authenticated user's ID from {@link SecurityUtil#getUserId()}.
+     */
     @GetMapping
     public ResponseEntity<List<SavingsGoal>> getAllSavingsGoals() {
         return ResponseEntity.ok(savingsGoalService.getAllSavingsGoals(SecurityUtil.getUserId()));
     }
     
-	/**
-	 * Retrieves the total balance across all savings goals for the authenticated user.
-	 *
-	 * <p>Responds with {@code 200 OK} and a single {@link BigDecimal} value
-	 * representing the total funds saved across all goals.</p>
-	 *
-	 * @return {@code ResponseEntity} containing the total savings balance
-	 * @implNote Delegates to {@link SavingsGoalService#getTotalBalance()}.
-	 */
+    /**
+     * Retrieves the total balance across all savings goals for the authenticated user.
+     *
+     * <p>Responds with {@code 200 OK} and a single {@link BigDecimal} value
+     * representing the total funds saved across all goals.</p>
+     *
+     * @return {@code ResponseEntity} containing the total savings balance
+     * @implNote Delegates to {@link SavingsGoalService#getTotalBalance()}.
+     */
     @GetMapping("/savings-balance")
     public ResponseEntity<BigDecimal> getTotalBalance() {
         return ResponseEntity.ok(savingsGoalService.getTotalBalance());
     }
 
-	/**
-	 * Creates a new savings goal for the authenticated user.
-	 *
-	 * <p>Responds with {@code 201 Created} and the newly created {@link SavingsGoal}.
-	 * The {@code Location} header points to {@code /api/savings-goals/{id}}.</p>
-	 *
-	 * @param request a {@link SavingGoalCreation} object containing goal details
-	 * @return {@code ResponseEntity} containing the created {@link SavingsGoal}
-	 * @implNote Delegates to {@link SavingsGoalService#saveSavingsGoal(SavingGoalCreation)}.
-	 */
+    /**
+     * Creates a new savings goal for the authenticated user.
+     *
+     * <p>Responds with {@code 201 Created} and the newly created {@link SavingsGoal}.
+     * The {@code Location} header points to {@code /api/savings-goals/{id}}.</p>
+     *
+     * @param request a {@link SavingGoalCreation} object containing goal details
+     * @return {@code ResponseEntity} containing the created {@link SavingsGoal}
+     * @implNote Delegates to {@link SavingsGoalService#saveSavingsGoal(SavingGoalCreation)}.
+     */
     @PostMapping
     public ResponseEntity<SavingsGoal> createSavingsGoal(@Valid @RequestBody SavingGoalCreation request) {
         var savingGoal = savingsGoalService.saveSavingsGoal(request);
